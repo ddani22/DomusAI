@@ -5,12 +5,14 @@
 # DATOS SENSIBLES Y ARCHIVOS GRANDES
 # =============================================================================
 
-# Datasets originales y procesados (pueden contener datos sensibles)
-data/Dataset_original_test.csv
-data/Dataset_clean_test.csv
-data/*.csv
-data/*.xlsx
-data/*.json
+# Datasets originales y procesados - COMPARTIDOS CON EL EQUIPO
+# data/Dataset_original_test.csv    # ✅ PERMITIDO - Colaboración con compañero
+# data/Dataset_clean_test.csv       # ✅ PERMITIDO - Datos procesados compartidos
+# data/*.csv                        # ✅ PERMITIDO - CSVs del proyecto
+# data/*.xlsx                       # ✅ PERMITIDO - Excel compartido
+# data/*.json                       # ✅ PERMITIDO - Insights compartidos
+
+# Solo excluir carpetas temporales
 data/raw/
 data/processed/
 data/temp/
