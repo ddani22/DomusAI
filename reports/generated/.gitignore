@@ -1,0 +1,13 @@
+# Ignorar todos los reportes generados automáticamente
+*.pdf
+*.html
+*.png
+*.jpg
+*.svg
+
+# Excepto ejemplos
+!example_*.pdf
+!example_*.html
+
+# Mantener directorio
+!.gitkeep

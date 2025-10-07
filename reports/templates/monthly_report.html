@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Mensual - DomusAI</title>
+    <style>
+        {{ inline_css }}
+    </style>
+</head>
+<body>
+    <!-- ========================================
+         HEADER
+         ======================================== -->
+    <header>
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../assets/logo_domusai.png" alt="DomusAI Logo">
+                <div>
+                    <h1>🏠 DomusAI</h1>
+                    <p>Sistema de Monitoreo Energético Inteligente</p>
+                </div>
+            </div>
+            <div class="report-info">
+                <p><strong>Período:</strong> {{ report_month }} {{ report_year }}</p>
+                <p><strong>Generado:</strong> {{ generation_date }}</p>
+                <p><strong>Reporte:</strong> {{ report_id }}</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- ========================================
+         SECCIÓN 1: RESUMEN EJECUTIVO
+         ======================================== -->
+    <section id="executive-summary">
+        <h2>📊 Resumen Ejecutivo</h2>
+        
+        <div class="kpi-grid">
+            <!-- KPI 1: Consumo Total -->
+            <div class="kpi-card">
+                <h3>Consumo Total</h3>
+                <p class="kpi-value">{{ summary.total_consumption | round(2) }} kWh</p>
+                <p class="kpi-change {{ 'increase' if summary.change_pct > 0 else 'decrease' if summary.change_pct < 0 else 'neutral' }}">
+                    {% if summary.change_pct > 0 %}
+                        ▲ {{ summary.change_pct | round(1) }}% vs mes anterior
+                    {% elif summary.change_pct < 0 %}
+                        ▼ {{ summary.change_pct | abs | round(1) }}% vs mes anterior
+                    {% else %}
+                        = Sin cambios
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- KPI 2: Consumo Promedio Diario -->
+            <div class="kpi-card">
+                <h3>Consumo Promedio Diario</h3>
+                <p class="kpi-value">{{ summary.daily_avg | round(3) }} kW</p>
+                <p style="color: #666; font-size: 12px; margin-top: 5px;">
+                    Máximo: {{ summary.daily_max | round(3) }} kW<br>
+                    Mínimo: {{ summary.daily_min | round(3) }} kW
+                </p>
+            </div>
+
+            <!-- KPI 3: Score de Eficiencia -->
+            <div class="kpi-card">
+                <h3>Score de Eficiencia</h3>
+                <p class="kpi-value">{{ summary.efficiency_score }}/100</p>
+                <p class="kpi-change {{ 'decrease' if summary.efficiency_score >= 75 else 'increase' if summary.efficiency_score < 50 else 'neutral' }}">
+                    {% if summary.efficiency_score >= 75 %}
+                        <span class="badge badge-success">Excelente</span>
+                    {% elif summary.efficiency_score >= 50 %}
+                        <span class="badge badge-warning">Moderado</span>
+                    {% else %}
+                        <span class="badge badge-danger">Mejorable</span>
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- KPI 4: Anomalías Detectadas -->
+            <div class="kpi-card">
+                <h3>Anomalías Detectadas</h3>
+                <p class="kpi-value">{{ summary.total_anomalies }}</p>
+                <p style="color: #666; font-size: 12px; margin-top: 5px;">
+                    {% if summary.critical_anomalies > 0 %}
+                        🔴 {{ summary.critical_anomalies }} críticas
+                    {% else %}
+                        ✅ Sin anomalías críticas
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Resumen Textual -->
+        <div style="background: #f9fbfd; padding: 20px; border-radius: 8px; margin-top: 20px;">
+            <p style="font-size: 16px; color: #555; line-height: 1.8;">
+                <strong>Resumen del Período:</strong> 
+                Durante {{ report_month }} {{ report_year }}, se registró un consumo total de 
+                <span class="highlight">{{ summary.total_consumption | round(2) }} kWh</span>, 
+                con un promedio diario de <span class="highlight">{{ summary.daily_avg | round(3) }} kW</span>. 
+                {% if summary.change_pct > 0 %}
+                    El consumo aumentó un <strong style="color: #e74c3c;">{{ summary.change_pct | round(1) }}%</strong> 
+                    respecto al mes anterior.
+                {% elif summary.change_pct < 0 %}
+                    Se logró una reducción del <strong style="color: #27ae60;">{{ summary.change_pct | abs | round(1) }}%</strong> 
+                    respecto al mes anterior.
+                {% else %}
+                    El consumo se mantuvo estable respecto al mes anterior.
+                {% endif %}
+            </p>
+        </div>
+    </section>
+
+    <!-- ========================================
+         SECCIÓN 2: ANÁLISIS HISTÓRICO
+         ======================================== -->
+    <section id="historical-analysis">
+        <h2>📈 Análisis Histórico</h2>
+        
+        {% if charts.daily_consumption %}
+        <div class="chart-container">
+            <p class="chart-title">Consumo Energético Diario</p>
+            <img src="{{ charts.daily_consumption }}" alt="Gráfico de Consumo Diario">
+        </div>
+        {% endif %}
+
+        {% if charts.hourly_heatmap %}
+        <div class="chart-container">
+            <p class="chart-title">Patrón de Consumo por Hora y Día de la Semana</p>
+            <img src="{{ charts.hourly_heatmap }}" alt="Heatmap de Consumo Horario">
+        </div>
+        {% endif %}
+
+        <!-- Estadísticas Clave -->
+        <div style="background: #f9fbfd; padding: 20px; border-radius: 8px; margin-top: 20px;">
+            <h3>📊 Estadísticas del Período</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div>
+                    <strong>🔥 Día con Mayor Consumo:</strong><br>
+                    <span style="color: #667eea;">{{ stats.highest_day }} - {{ stats.highest_value | round(2) }} kWh</span>
+                </div>
+                <div>
+                    <strong>🌙 Día con Menor Consumo:</strong><br>
+                    <span style="color: #667eea;">{{ stats.lowest_day }} - {{ stats.lowest_value | round(2) }} kWh</span>
+                </div>
+                <div>
+                    <strong>⏰ Hora Pico:</strong><br>
+                    <span style="color: #667eea;">{{ stats.peak_hour }}:00 hrs</span>
+                </div>
+                <div>
+                    <strong>🌑 Hora Valle:</strong><br>
+                    <span style="color: #667eea;">{{ stats.valley_hour }}:00 hrs</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========================================
+         SECCIÓN 3: PREDICCIONES
+         ======================================== -->
+    {% if predictions %}
+    <section id="predictions">
+        <h2>🔮 Predicciones</h2>
+        
+        {% if charts.prediction_forecast %}
+        <div class="chart-container">
+            <p class="chart-title">Forecast de Consumo - Próximos 7 Días</p>
+            <img src="{{ charts.prediction_forecast }}" alt="Gráfico de Predicción">
+        </div>
+        {% endif %}
+
+        <div style="background: #f9fbfd; padding: 20px; border-radius: 8px; margin-top: 20px;">
+            <h3>📋 Resumen de Predicción</h3>
+            <ul style="list-style: none; padding: 0;">
+                <li style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;">
+                    <strong>Consumo estimado próximos 7 días:</strong> 
+                    <span style="color: #667eea; float: right;">{{ predictions.total_7days | round(2) }} kWh</span>
+                </li>
+                <li style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;">
+                    <strong>Promedio diario estimado:</strong> 
+                    <span style="color: #667eea; float: right;">{{ predictions.daily_avg | round(3) }} kW</span>
+                </li>
+                <li style="padding: 10px 0; border-bottom: 1px solid #e0e0e0;">
+                    <strong>Factura estimada (7 días):</strong> 
+                    <span style="color: #667eea; float: right;">${{ predictions.estimated_bill | round(2) }}</span>
+                </li>
+                <li style="padding: 10px 0;">
+                    <strong>Confiabilidad del modelo:</strong> 
+                    <span style="color: #667eea; float: right;">{{ predictions.confidence | round(1) }}%</span>
+                </li>
+            </ul>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- ========================================
+         SECCIÓN 4: ANOMALÍAS
+         ======================================== -->
+    {% if anomalies %}
+    <section id="anomalies">
+        <h2>⚠️ Detección de Anomalías</h2>
+        
+        {% if charts.anomaly_distribution %}
+        <div class="chart-container">
+            <p class="chart-title">Distribución de Anomalías por Tipo</p>
+            <img src="{{ charts.anomaly_distribution }}" alt="Gráfico de Anomalías">
+        </div>
+        {% endif %}
+
+        {% if anomalies.top_critical and anomalies.top_critical|length > 0 %}
+        <h3>🚨 Top 10 Anomalías Críticas</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Tipo</th>
+                    <th>Consumo (kW)</th>
+                    <th>Severidad</th>
+                    <th>Descripción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for anomaly in anomalies.top_critical[:10] %}
+                <tr>
+                    <td>{{ anomaly.timestamp }}</td>
+                    <td>{{ anomaly.type }}</td>
+                    <td>{{ anomaly.consumption | round(3) }}</td>
+                    <td class="severity-{{ anomaly.severity }}">{{ anomaly.severity | upper }}</td>
+                    <td>{{ anomaly.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    <!-- ========================================
+         SECCIÓN 5: RECOMENDACIONES
+         ======================================== -->
+    <section id="recommendations">
+        <h2>💡 Recomendaciones</h2>
+        
+        <ul class="recommendations-list">
+            {% for rec in recommendations %}
+            <li>
+                <strong>{{ rec.title }}</strong>
+                <p>{{ rec.description }}</p>
+                {% if rec.savings %}
+                <em>💰 Ahorro estimado: {{ rec.savings }}</em>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <!-- ========================================
+         FOOTER
+         ======================================== -->
+    <footer>
+        <p><strong>DomusAI</strong> - Sistema de Monitoreo Energético Inteligente</p>
+        <p>Reporte generado automáticamente el {{ generation_date }}</p>
+        <p>Contacto: <a href="mailto:contacto@domusai.dev">contacto@domusai.dev</a></p>
+        <p style="margin-top: 15px; font-size: 12px; color: #bbb;">
+            DomusAI v1.0 | © 2025 | Todos los derechos reservados
+        </p>
+    </footer>
+</body>
+</html>
