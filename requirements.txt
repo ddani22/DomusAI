@@ -16,4 +16,14 @@ optuna==4.5.0
 memory-profiler==0.61.0   
 jupyter==1.1.1              
 ipykernel==6.30.1       
-notebook==7.4.7           
+notebook==7.4.7
+
+# Sistema de Reportes (Octubre 2025)
+jinja2==3.1.6              # Templates HTML profesionales
+xhtml2pdf==0.2.17          # Conversión HTML → PDF (compatible Windows)
+reportlab==4.4.4           # Motor de generación PDF
+pypdf==6.1.1               # Manipulación de archivos PDF
+
+# Sistema de Email y Automatización (Sprint 7 - Octubre 2025)
+python-dotenv==1.0.0       # Gestión de variables de entorno (.env)
+schedule==1.2.2            # Scheduler de tareas automáticas   
