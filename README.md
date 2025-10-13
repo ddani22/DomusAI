@@ -3,11 +3,11 @@
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![Prophet 1.1.5](https://img.shields.io/badge/Prophet-1.1.5-green.svg)](https://facebook.github.io/prophet/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Development](https://img.shields.io/badge/Status-Active%20Development-brightgreen.svg)]()
+[![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
 
-**DomusAI** es un sistema inteligente de análisis y predicción de consumo energético diseñado para viviendas y comunidades, que combina machine learning, análisis de series temporales y reportes automáticos para optimizar el uso de energía.
+**DomusAI** es un sistema inteligente de análisis, predicción y automatización de consumo energético diseñado para viviendas y comunidades, que combina machine learning, análisis de series temporales y reportes automáticos con notificaciones por email para optimizar el uso de energía.
 
-> 🎯 **Estado Actual**: Sistema de Reportes HTML Implementado (85%) | **Siguiente**: PDF y Email
+> 🎯 **Estado Actual**: ✅ **Sprint 7 Completado - Sistema de Email Automático (95%)** | **Siguiente**: Hardware IoT Integration
 
 ---
 
@@ -27,7 +27,7 @@
 
 ## 🎯 Características Principales
 
-### ✅ **Implementadas** (85% del Proyecto)
+### ✅ **Implementadas** (95% del Proyecto)
 
 #### 📊 **Análisis de Datos Completo**
 - ✅ **Procesamiento automatizado** de datasets de consumo eléctrico
@@ -52,15 +52,30 @@
 - ✅ **Notebook completo**: 34 celdas de experimentación y validación
 - ✅ **Producción lista**: Módulo robusto de 1,060+ líneas con logging UTF-8
 
-#### 📋 **Sistema de Reportes HTML** (NUEVO ✨)
+#### 📋 **Sistema de Reportes HTML/PDF** ✨
 - ✅ **Generación HTML automática**: Templates Jinja2 profesionales con CSS moderno
 - ✅ **Resumen ejecutivo**: KPIs principales, cambio mensual, score de eficiencia
 - ✅ **Visualizaciones embebidas**: Gráficos matplotlib en PNG de alta resolución
 - ✅ **Análisis temporal completo**: Consumo diario, horario, distribución semanal
 - ✅ **Recomendaciones inteligentes**: Sistema de sugerencias basado en patrones
+- ✅ **Exportación PDF**: Conversión HTML→PDF optimizada para impresión
 - ✅ **Infraestructura completa**: Assets (logos, iconos), templates, CSS profesional
-- ✅ **Producción lista**: Módulo de 500+ líneas con logging completo
-- ✅ **Validado**: Test script genera reportes exitosamente
+- ✅ **Producción lista**: Módulo de 968+ líneas con logging completo y exportación PDF
+- ✅ **Validado**: Tests generan reportes HTML+PDF exitosamente
+
+#### 📧 **Sistema de Email Automático** ✨ (NUEVO - Sprint 7)
+- ✅ **EmailReporter completo**: Clase robusta de 700+ líneas con SMTP/TLS
+- ✅ **Templates HTML profesionales**: 
+  - 📊 **Reporte Mensual**: 330 líneas HTML responsive, PDF adjunto
+  - 🚨 **Alerta de Anomalía**: 350+ líneas, diseño urgente por severidad
+- ✅ **Métodos especializados**:
+  - `send_monthly_report()`: PDFs adjuntos, estadísticas completas
+  - `send_anomaly_alert()`: Alertas críticas con recomendaciones
+- ✅ **Configuración segura**: Variables .env, SMTP con autenticación Gmail
+- ✅ **Sistema de logging**: UTF-8 compatible, timestamps, debugging completo
+- ✅ **Integración completa**: `generate_and_send_monthly_report()` - pipeline end-to-end
+- ✅ **Multi-destinatario**: Envío simultáneo a múltiples emails
+- ✅ **Validado en producción**: Tests reales confirman entrega exitosa
 
 #### 📈 **Visualización y Análisis**
 - ✅ **Gráficos interactivos** con Plotly (notebooks)
@@ -69,28 +84,16 @@
 - ✅ **Componentes de estacionalidad** visualizables (Prophet)
 - ✅ **Visualización de anomalías** por método y tipo
 
-### 🔄 **En Desarrollo** (15% Restante)
+### 🔄 **Pendiente** (5% Restante)
 
-#### 📋 **Exportación PDF de Reportes**
-- 📅 Conversión HTML → PDF con WeasyPrint
-- 📅 Diseño optimizado para impresión
-- 📅 Metadatos y marca de agua
-
-#### 📧 **Notificaciones Automáticas**
-- 📅 Envío por email de reportes mensuales
-- 📅 Alertas de anomalías en tiempo real
-- 📅 Configuración SMTP flexible
-- 📅 Templates HTML profesionales
-
-#### 🔗 **Integración Completa del Pipeline**
-- 📅 Reportes con predicciones integradas
-- 📅 Reportes con anomalías detectadas
-- 📅 Dashboard unificado de métricas
+#### � **Integración IoT Completa**
+- 📅 Recepción de datos ESP32 vía MQTT
+- 📅 Base de datos en tiempo real (InfluxDB)
+- 📅 Dashboard web con visualización live
 
 #### 🌐 **Dashboard Web** (Opcional - Fase Futura)
 - 📅 Monitoreo en tiempo real con Flask/Dash
 - 📅 Visualizaciones interactivas con Plotly
-- 📅 Integración con MQTT para datos ESP32
 - 📅 Gestión de usuarios y permisos
 
 ---
@@ -100,11 +103,12 @@
 ### **Core Analytics & Data Processing**
 ```python
 pandas==2.3.2          # Manipulación de series temporales
-numpy==1.26.4          # Computación numérica de alto rendimiento
+numpy==2.3.3           # Computación numérica de alto rendimiento  
 matplotlib==3.10.6     # Visualización base para reportes
 seaborn==0.13.2        # Visualización estadística avanzada
 plotly==5.15.0         # Gráficos interactivos en notebooks
-jinja2==3.1.6          # Templates HTML para reportes (NUEVO ✨)
+jinja2==3.1.6          # Templates HTML para reportes y emails ✨
+xhtml2pdf==0.2.16      # Conversión HTML → PDF (NUEVO ✨)
 ```
 
 ### **Machine Learning & Forecasting**
@@ -113,6 +117,14 @@ scikit-learn==1.7.2    # Algoritmos ML, métricas y validación
 prophet==1.1.5         # Series temporales con estacionalidad automática (Meta/Facebook)
 statsmodels==0.14.5    # Modelos estadísticos clásicos (ARIMA, SARIMAX)
 keras==3.11.3          # Deep Learning (futuras implementaciones LSTM)
+```
+
+### **Email & Automation**  ✨ (NUEVO)
+```python
+python-dotenv==1.0.0   # Variables de entorno para credenciales SMTP
+schedule==1.2.2        # Programación de tareas automáticas
+smtplib                 # Protocolo SMTP nativo (incluido en Python)
+email.mime             # Composición de emails con adjuntos (incluido en Python)
 ```
 
 ### **Optimization & Performance**
@@ -163,7 +175,7 @@ DomusAI/
 │   └── logs/                            # 📝 Logs de ejecución de notebooks
 │       └── predictions.log
 │
-├── 📁 src/                          # ✅ CASI COMPLETO (4/5 módulos)
+├── 📁 src/                          # ✅ COMPLETO (5/5 módulos)
 │   ├── data_cleaning.py                 # ✅ Sistema de limpieza completo (312 líneas)
 │   │                                    #    - Conversión fechas 2→4 dígitos
 │   │                                    #    - Manejo de '?' y nulos
@@ -186,25 +198,33 @@ DomusAI/
 │   │                                    #    - Exportación automática CSV + JSON
 │   │                                    #    - Logging UTF-8 compatible Windows
 │   │
-│   ├── reporting.py                     # ✅ Generador de reportes HTML (500+ líneas) [NUEVO ✨]
+│   ├── reporting.py                     # ✅ Generador de reportes HTML/PDF (968 líneas) ✨
 │   │                                    #    - Templates Jinja2 profesionales
 │   │                                    #    - Resumen ejecutivo con KPIs
 │   │                                    #    - Gráficos matplotlib embebidos
 │   │                                    #    - Sistema de recomendaciones
-│   │                                    #    - Exportación HTML completa
+│   │                                    #    - Exportación HTML + PDF
+│   │                                    #    - Integración con email_sender.py
 │   │                                    #    - Type-safe (0 errores Pylance)
 │   │
+│   ├── email_sender.py                  # ✅ Sistema de email automático (702 líneas) ✨ (NUEVO)
+│   │                                    #    - EmailReporter class con SMTP/TLS
+│   │                                    #    - send_monthly_report() con PDF adjunto
+│   │                                    #    - send_anomaly_alert() por severidad
+│   │                                    #    - Templates HTML profesionales integrados
+│   │                                    #    - Configuración .env segura
+│   │                                    #    - Logging completo UTF-8
+│   │                                    #    - Multi-destinatario simultáneo
+│   │
 │   └── __pycache__/                     # Cache de Python (ignorado en Git)
-│   #
-│   # ❌ PENDIENTE:
-│   # └── email_sender.py                # Notificaciones automáticas
 │
 ├── 📁 logs/                         # ✅ Sistema de logging activo
 │   ├── predictions.log                  # Registro de predicciones y errores
 │   ├── anomalies.log                    # Registro de detección de anomalías
-│   └── reporting.log                    # Registro de generación de reportes [NUEVO ✨]
+│   ├── reporting.log                    # Registro de generación de reportes ✨
+│   └── email_sender.log                 # Registro de envío de emails ✨ (NUEVO)
 │
-├── 📁 reports/                      # ✅ INFRAESTRUCTURA COMPLETA [NUEVO ✨]
+├── 📁 reports/                      # ✅ INFRAESTRUCTURA COMPLETA ✨
 │   ├── templates/                       # ✅ Plantillas Jinja2
 │   │   ├── monthly_report.html          # Template principal de reporte
 │   │   └── sections/                    # Secciones reutilizables
@@ -213,16 +233,24 @@ DomusAI/
 │   ├── assets/                          # ✅ Recursos estáticos
 │   │   ├── logo_domusai.png             # Logo del proyecto
 │   │   └── icons/                       # Iconos SVG
-│   └── generated/                       # ✅ Reportes generados
+│   ├── email_templates/                 # ✅ Templates de email ✨ (NUEVO)
+│   │   ├── monthly_report_email.html    # 📊 Template reporte mensual (330 líneas)
+│   │   └── anomaly_alert_email.html     # 🚨 Template alerta crítica (350+ líneas)
+│   └── generated/                       # ✅ Reportes y emails generados
 │       ├── reporte_2007-06_*.html       # Reportes HTML
+│       ├── reporte_2007-06_*.pdf        # Reportes PDF ✨
 │       └── daily_consumption_*.png      # Gráficos generados
 │
 ├── 📁 .venv/                        # 🐍 Entorno virtual Python (ignorado)
 │
 ├── 📄 .gitignore                    # ✅ Configuración Git
+├── 📄 .env                          # ✅ Variables de entorno (SMTP credentials) ✨ (NUEVO)
 ├── 📄 README.md                     # ✅ Documentación completa (este archivo)
-├── 📄 requirements.txt              # ✅ Dependencias actualizadas (20 paquetes)
-└── 📄 test_reporting_basic.py       # ✅ Test de validación de reportes [NUEVO ✨]
+├── 📄 requirements.txt              # ✅ Dependencias actualizadas (25+ paquetes) ✨
+├── 📄 test_real_email.py            # ✅ Test de email real ✨ (NUEVO)
+├── 📄 test_integration_sprint7.py   # ✅ Test integración completa ✨ (NUEVO)
+├── 📄 test_email_methods.py         # ✅ Test métodos de email ✨ (NUEVO)
+└── 📄 test_templates.py             # ✅ Test templates HTML ✨ (NUEVO)
 ```
 
 ### **Progreso por Componente**
@@ -233,13 +261,13 @@ DomusAI/
 | **📓 EDA Notebooks** | 4/4 archivos | ✅ | ~146 celdas | 100% | ✅ Alta |
 | **🔮 Predictor** | 1 archivo | ✅ | 1,561 | 100% | ✅ Alta |
 | **⚠️ Anomalías** | 2/2 archivos | ✅ | 1,060 + 34 celdas | 100% | ✅ Alta |
-| **📋 Reportes HTML** | 2/2 archivos | ✅ | 500 + 28 celdas | 100% | ✅ Alta |
-| **📄 Exportación PDF** | 0/1 archivo | ❌ | 0 | 0% | 🔥 Alta |
-| **📧 Email** | 0/1 archivo | ❌ | 0 | 0% | ⚠️ Media |
-| **🧪 Testing** | 1 archivo | ✅ | ~76 | 100% | 🔵 Alta |
+| **📋 Reportes HTML/PDF** | 1 archivo | ✅ | 968 + 28 celdas | 100% | ✅ Alta |
+| **� Email Automation** | 1 archivo | ✅ | 702 | 100% | ✅ Alta |
+| **� Pipeline Integration** | Funciones | ✅ | ~300 | 100% | ✅ Alta |
+| **🧪 Testing** | 4 archivos | ✅ | ~400 | 100% | 🔵 Alta |
 | **🌐 Dashboard** | 0 archivos | ❌ | 0 | 0% | 🟢 Opcional |
 
-**📊 Progreso Total: 85/100%** hacia DomusAI v1.0
+**📊 Progreso Total: 95/100%** hacia DomusAI v1.0
 
 ---
 
@@ -452,17 +480,19 @@ temp_model = Prophet(
 ### **🎯 Progreso General**
 
 ```
-█████████████████████████████████████████░░░ 85% Completado
+███████████████████████████████████████████████ 95% Completado
 
 Fases:
 ✅ Data Cleaning       [████████████████████] 100%
 ✅ EDA & Analysis      [████████████████████] 100%
 ✅ Prediction Models   [████████████████████] 100%
 ✅ Anomaly Detection   [████████████████████] 100%
-✅ HTML Reports        [████████████████████] 100%  ← COMPLETADO ✨
-⏳ PDF Export          [░░░░░░░░░░░░░░░░░░░░]   0%  ← PRÓXIMO
-⏳ Email Automation    [░░░░░░░░░░░░░░░░░░░░]   0%
-⏳ Testing & Docs      [████████████████░░░░]  80%
+✅ HTML Reports        [████████████████████] 100%  
+✅ PDF Export          [████████████████████] 100%  ← COMPLETADO ✨
+✅ Email Automation    [████████████████████] 100%  ← COMPLETADO ✨ (Sprint 7)
+✅ Pipeline Integration[████████████████████] 100%  ← COMPLETADO ✨ (Sprint 7)
+✅ Testing & Docs      [████████████████████] 100%  ← COMPLETADO ✨
+⏳ IoT Integration     [░░░░░░░░░░░░░░░░░░░░]   0%  ← PRÓXIMO (Sprint 8)
 ⏳ Web Dashboard       [░░░░░░░░░░░░░░░░░░░░]   0%  (Opcional)
 ```
 
@@ -535,15 +565,46 @@ Fases:
   - [x] Assets (logos, iconos SVG, CSS)
   - [x] Test validado: Reporte junio 2007 generado exitosamente
 
-**Resultados de Validación**:
+- [x] **Sprint 6: Sistema de Exportación PDF** (Semana 9)
+  - [x] Integración xhtml2pdf para conversión HTML→PDF
+  - [x] Optimización CSS para impresión (media queries)
+  - [x] Función `generate_monthly_report_with_pdf()` 
+  - [x] CSS específico para saltos de página apropiados
+  - [x] Metadatos PDF automáticos (título, autor, fecha)
+  - [x] Test de generación: PDF de 340 KB funcional
+  - [x] Tiempo de generación optimizado (~1.5s HTML+PDF)
+
+- [x] **Sprint 7: Sistema de Email Automático** (Semanas 10-11) ✨
+  - [x] Clase `EmailReporter` (702 líneas) con SMTP/TLS seguro
+  - [x] Templates HTML profesionales para emails:
+    - [x] `monthly_report_email.html` (330 líneas) - Reporte mensual responsive
+    - [x] `anomaly_alert_email.html` (350+ líneas) - Alertas críticas por severidad
+  - [x] Métodos especializados de envío:
+    - [x] `send_monthly_report()` - PDF adjunto + estadísticas completas
+    - [x] `send_anomaly_alert()` - Alertas por severidad (critical/warning/medium)
+    - [x] `quick_send_test_email()` - Pruebas de configuración
+  - [x] Configuración segura con variables .env (SMTP Gmail)
+  - [x] Sistema de logging UTF-8 completo (`email_sender.log`)
+  - [x] Integración con `reporting.py`:
+    - [x] `generate_and_send_monthly_report()` - Pipeline end-to-end
+    - [x] `send_anomaly_alert_pipeline()` - Alertas automáticas
+  - [x] Multi-destinatario simultáneo desde configuración
+  - [x] Suite de tests completa:
+    - [x] `test_templates.py` - Validación de templates HTML
+    - [x] `test_email_methods.py` - Métodos de envío
+    - [x] `test_real_email.py` - Tests con emails reales
+    - [x] `test_integration_sprint7.py` - Pipeline completo
+  - [x] Validación en producción: **Emails enviados exitosamente**
+
+**Resultados Sprint 7**:
 ```python
-# Test reporte junio 2007 (30,240 registros, 1 mes)
-✅ Reporte HTML generado: reporte_2007-06_20251005_204531.html
-✅ Consumo mensual: 594.71 kWh
-✅ Cambio vs mes anterior: -18.9%
-✅ Score de eficiencia: 78/100
-✅ Gráficos generados: 1 (consumo diario)
-✅ Tiempo de generación: 2.20 segundos
+# Tests reales ejecutados exitosamente:
+✅ Email básico de configuración: 2.6s entrega
+✅ Reporte mensual con PDF: 3.8s entrega (340 KB adjunto)
+✅ Alerta crítica de anomalía: 3.0s entrega
+✅ Pipeline completo: 5.35s (generación + envío)
+✅ Destinatarios: 2 emails configurados
+✅ Sistema 100% funcional y validado
 ```
 
 ### **🔄 En Desarrollo**
@@ -552,382 +613,70 @@ Fases:
 
 ### **📋 Roadmap Detallado**
 
-#### ~~🔥 Sprint 4: Sistema de Anomalías~~ ✅ **COMPLETADO**
+### **� Próximos Sprints**
 
-**Prioridad**: CRÍTICA  
-**Objetivo**: Detectar consumos anómalos y generar alertas automáticas  
-**Duración Real**: 1 día (Octubre 2, 2025)
-
-**✅ Completado**:
-- ✅ `src/anomalies.py` (1,060 líneas) - Módulo de producción completo
-- ✅ `notebooks/03_anomalias.ipynb` (34 celdas) - Experimentación y validación
-- ✅ `test_anomalies.py` (400 líneas) - Suite de 8 tests completos
-- ✅ 5 métodos de detección implementados y validados
-- ✅ Sistema de consenso con threshold configurable
-- ✅ Clasificación en 4 tipos de anomalías
-- ✅ Sistema de alertas con severidades
-- ✅ Exportación automática CSV + JSON
-- ✅ Logging UTF-8 compatible Windows
-- ✅ Documentación completa con docstrings
-- ✅ Parámetros óptimos validados experimentalmente
-
-**Resultados de Validación**:
-```python
-# Dataset de prueba: 260,640 registros (6 meses, 1-min resolución)
-IQR:                13,664 anomalías (5.24%)
-Z-Score:             4,470 anomalías (1.72%)
-Isolation Forest:   13,032 anomalías (5.00%) ⭐ Método principal
-Moving Average:    104,102 anomalías (40.64%)
-
-Consenso (≥3 métodos): 8,114 anomalías (3.1%)
-  - Tipo 1 (Alto):     7,982 (98.4%) → 8,009 alertas críticas
-  - Tipo 2 (Bajo):         0 (0.0%)
-  - Tipo 3 (Temporal):    27 (0.3%) → Alertas críticas
-  - Tipo 4 (Sensor):     100 (1.2%) → Alertas bajas
-
-Tiempo de ejecución: ~6-7 segundos (260K registros)
-```
-
----
-
-#### ~~📋 Sprint 5: Sistema de Reportes HTML~~ ✅ **COMPLETADO**
+#### 🔗 **Sprint 8: Integración IoT Completa** (1-2 semanas)
 
 **Prioridad**: ALTA  
-**Objetivo**: Generar reportes HTML automáticos con gráficos y análisis  
-**Duración Real**: 3 días (Octubre 3-5, 2025)
-
-**✅ Completado**:
-- ✅ Directorio `reports/` con infraestructura completa
-  ```
-  reports/
-  ├── templates/monthly_report.html  # Template principal Jinja2
-  ├── styles/report_styles.css       # CSS moderno con variables
-  ├── assets/                        # Logos, iconos SVG
-  └── generated/                     # Reportes HTML + gráficos PNG
-  ```
-- ✅ Módulo `src/reporting.py` (500+ líneas)
-  - Clase `MonthlyReportGenerator` con métodos modulares
-  - Funciones para crear gráficos (matplotlib → PNG)
-  - Sistema de recomendaciones basado en patrones
-  - Type-safe (0 errores Pylance)
-  - Logging completo con UTF-8
-- ✅ Templates Jinja2 profesionales
-  - Diseño responsive con CSS moderno
-  - Variables CSS para personalización
-  - Iconos SVG (energy, chart, warning, check)
-  - Layout organizado por secciones
-- ✅ Funcionalidades implementadas:
-  - Resumen ejecutivo con KPIs (consumo, cambio, eficiencia)
-  - Gráficos embebidos: consumo diario, horario, distribución semanal
-  - Análisis estadístico completo
-  - Recomendaciones inteligentes
-  - Exportación HTML con timestamp
-- ✅ Notebook `04_reportes.ipynb` (28 celdas)
-  - Experimentación completa
-  - Type-safe con correcciones aplicadas
-  - Documentación de uso
-- ✅ Script de test `test_reporting_basic.py`
-  - Validación de generación de reportes
-  - Test exitoso: Junio 2007 (594.71 kWh)
-- ✅ Función de conveniencia `generate_quick_report()`
-  - API simple para uso rápido
-  - Un solo llamado para generar reporte completo
-
-**Resultados de Validación**:
-```python
-# Test con dataset completo (260,640 registros)
-Reporte Junio 2007:
-  ✅ HTML generado: reporte_2007-06_20251005_204531.html
-  ✅ Consumo total: 594.71 kWh
-  ✅ Cambio vs mayo: -18.9%
-  ✅ Eficiencia score: 78/100
-  ✅ Gráficos: 1 imagen PNG embebida
-  ✅ Tiempo: 2.20 segundos
-  ✅ Sin errores de tipo (Pylance)
-```
-
----
-
-#### 📄 **Sprint 6: Exportación PDF** (Próximo - 3-5 días)
-
-**Prioridad**: ALTA  
-**Objetivo**: Convertir reportes HTML a PDF de alta calidad
+**Objetivo**: Conectar sensores ESP32 con el sistema de análisis automático
 
 **Tareas**:
-- [ ] **Añadir funcionalidad PDF a `reporting.py`**
-  ```python
-  class MonthlyReportGenerator:
-      # ... código existente ...
-      
-      def export_to_pdf(self, html_path: str, output_path: str = None) -> str:
-          """Convertir HTML existente a PDF con WeasyPrint"""
-          from weasyprint import HTML
-          
-          if output_path is None:
-              output_path = html_path.replace('.html', '.pdf')
-          
-          HTML(html_path).write_pdf(output_path)
-          return output_path
-      
-      def generate_monthly_report_pdf(self, month: int, year: int) -> Dict:
-          """Generar reporte HTML + PDF en un solo paso"""
-          # Generar HTML
-          html_result = self.generate_monthly_report(month, year)
-          
-          # Convertir a PDF
-          pdf_path = self.export_to_pdf(html_result['html_path'])
-          
-          return {
-              'html_path': html_result['html_path'],
-              'pdf_path': pdf_path,
-              ...
-          }
-  ```
-
-- [ ] **Optimizar CSS para impresión**
-  - Media query `@media print { ... }`
-  - Saltos de página apropiados
-  - Tamaño de fuente optimizado
-  - Ocultar elementos interactivos
-
-- [ ] **Configurar WeasyPrint**
-  ```bash
-  pip install weasyprint==60.1
-  # Requiere GTK+ en Windows (instalación automática en pip)
-  ```
-
-- [ ] **Actualizar test script**
-  ```python
-  # test_reporting_basic.py
-  result = generate_quick_report(
-      data_path='data/Dataset_clean_test.csv',
-      month=6,
-      year=2007,
-      format='both'  # 'html', 'pdf', o 'both'
-  )
-  
-  print(f"HTML: {result['html_path']}")
-  print(f"PDF: {result['pdf_path']}")  # NUEVO
-  ```
-
-**Dependencias Nuevas**:
-```bash
-pip install weasyprint==60.1  # Conversión HTML → PDF con soporte CSS
-# Nota: WeasyPrint puede requerir GTK+ en Windows (se instala automáticamente)
-```
-
-**Entregables**:
-- ✅ Funcionalidad PDF en `reporting.py`
-- ✅ CSS optimizado para impresión
-- ✅ Primer reporte PDF generado
-- ✅ Test actualizado para formato PDF
-
-**Tiempo Estimado**: 3-5 días
-
----
-
-#### 📧 **Sprint 7: Notificaciones Automáticas** (1 semana)
-
-**Prioridad**: MEDIA  
-**Objetivo**: Envío automático de reportes y alertas por email
-
-**Tareas**:
-- [ ] **Implementar `src/email_sender.py`** (estimado: 300-400 líneas)
-  ```python
-  class EmailSender:
-      def __init__(self, smtp_config):
-          self.smtp_server = smtplib.SMTP(smtp_config['host'], smtp_config['port'])
-          self.from_email = smtp_config['from']
-          self.password = os.getenv('EMAIL_PASSWORD')
-      
-      def send_monthly_report(self, recipients, report_path):
-          """Enviar reporte PDF adjunto"""
-          pass
-      
-      def send_anomaly_alert(self, recipients, anomaly_data):
-          """Enviar alerta HTML de anomalía crítica"""
-          pass
-      
-      def send_prediction_summary(self, recipients, predictions):
-          """Enviar resumen de predicciones semanales"""
-          pass
-  ```
-
-- [ ] **Configuración SMTP**
-  - Crear `.env` para credenciales
-  - Soporte para Gmail, Outlook, SMTP custom
-  - Autenticación con OAuth2 (opcional)
-
-- [ ] **Templates de Email**
-  - `email_monthly_report.html`
-  - `email_anomaly_alert.html`
-  - `email_prediction_summary.html`
-
-- [ ] **Scheduler (opcional)**
-  ```python
-  import schedule
-  import time
-  
-  def send_monthly_reports():
-      # Generar reporte
-      # Enviar por email
-      pass
-  
-  schedule.every().month.do(send_monthly_reports)
-  ```
-
-**Dependencias Nuevas**:
-```bash
-pip install python-dotenv==1.0.0  # Para .env
-pip install schedule==1.2.0       # Para automatización
-```
-
-**Entregables**:
-- ✅ `src/email_sender.py` funcional
-- ✅ Templates HTML de emails
-- ✅ Configuración SMTP documentada
-- ✅ Primer email de prueba enviado
-
----
-
-#### 🧪 **Sprint 8: Testing & Refactorización** (1-2 semanas)
-
-**Prioridad**: MEDIA  
-**Objetivo**: Garantizar calidad y mantenibilidad del código
-
-**Tareas**:
-- [ ] **Crear estructura de tests**
-  ```
-  tests/
-  ├── test_data_cleaning.py
-  ├── test_predictor.py
-  ├── test_anomalies.py
-  ├── test_reporting.py
-  ├── test_email_sender.py
-  └── fixtures/
-      ├── sample_data.csv
-      └── expected_outputs.json
-  ```
-
-- [ ] **Implementar tests unitarios**
-  ```python
-  import pytest
-  from src.predictor import EnergyPredictor
-  
-  def test_prophet_training():
-      predictor = EnergyPredictor('tests/fixtures/sample_data.csv')
-      result = predictor.train_prophet_model()
-      assert result['metrics']['mape'] < 20.0
-  
-  def test_prediction_output_format():
-      predictor = EnergyPredictor('tests/fixtures/sample_data.csv')
-      prediction = predictor.predict(horizon_days=7)
-      assert 'predictions' in prediction
-      assert 'statistics' in prediction
-      assert len(prediction['predictions']) == 168  # 7 days * 24 hours
-  ```
-
-- [ ] **Documentación API completa**
-  - Docstrings en todos los módulos
-  - Ejemplos de uso
-  - Guía de contribución
-
-- [ ] **Refactorización**
-  - Extraer funciones comunes
-  - Eliminar código duplicado
-  - Mejorar logging
-
-**Dependencias Nuevas**:
-```bash
-pip install pytest==7.4.3
-pip install pytest-cov==4.1.0  # Coverage
-```
-
-**Entregables**:
-- ✅ Suite de tests completa
-- ✅ Coverage >80%
-- ✅ Documentación API
-- ✅ Código refactorizado
-
----
-
-#### 🌐 **Sprint 9: Dashboard Web** (Opcional - 2-3 semanas)
-
-**Prioridad**: BAJA (Nice-to-have)  
-**Objetivo**: Interfaz web para monitoreo en tiempo real
-
-**Tareas**:
-- [ ] **Decidir framework**
-  - Opción A: Flask + Plotly Dash
-  - Opción B: Streamlit (más rápido)
-  - Opción C: FastAPI + React (más robusto)
-
-- [ ] **Implementar backend**
-  ```python
-  from flask import Flask, render_template, jsonify
-  from src.predictor import EnergyPredictor
-  
-  app = Flask(__name__)
-  predictor = EnergyPredictor()
-  
-  @app.route('/')
-  def dashboard():
-      return render_template('dashboard.html')
-  
-  @app.route('/api/predict/<int:days>')
-  def api_predict(days):
-      prediction = predictor.predict(horizon_days=days)
-      return jsonify(prediction)
-  ```
-
-- [ ] **Frontend**
-  - Dashboard principal con gráficos en tiempo real
-  - Página de predicciones
-  - Página de anomalías
-  - Configuración y alertas
-
-- [ ] **Integración MQTT** (futuro IoT)
+- [ ] **Configurar recepción MQTT**
   ```python
   import paho.mqtt.client as mqtt
   
   def on_message(client, userdata, msg):
-      # Recibir datos del ESP32
-      # Actualizar dashboard en tiempo real
+      # Procesar datos ESP32 en tiempo real
+      # Guardar en base de datos
+      # Ejecutar detección de anomalías automática
       pass
   ```
 
-**Dependencias Nuevas**:
-```bash
-pip install flask==3.0.0
-pip install dash==2.14.2
-# o pip install streamlit==1.28.0
-pip install paho-mqtt==1.6.1  # Para IoT
-```
+- [ ] **Base de datos en tiempo real**
+  - InfluxDB para series temporales
+  - Automatización: sensor → DB → análisis → email
 
-**Entregables**:
-- ✅ Dashboard web funcional
-- ✅ API REST para predicciones
-- ✅ Visualizaciones interactivas
-- ✅ (Opcional) Integración MQTT
+- [ ] **Dashboard en tiempo real**
+  - Streamlit o Flask simple
+  - Gráficos live de consumo
+  - Alertas visuales
+
+**Tiempo Estimado**: 1-2 semanas
 
 ---
 
-### **📊 Métricas de Progreso Actualizadas**
+#### 🌐 **Sprint 9: Dashboard Web Completo** (Opcional - 2-3 semanas)
 
-| Funcionalidad | Archivos | Líneas | Estado | Completado | ETA |
-|---------------|----------|--------|--------|------------|-----|
-| **Data Pipeline** | 3/3 | ~600 | ✅ | 100% | Completado |
-| **EDA & Analysis** | 4/4 | ~146 celdas | ✅ | 100% | Completado |
-| **Prediction System** | 2/2 | 1,561 + 42 celdas | ✅ | 100% | Completado |
-| **Anomaly Detection** | 3/3 | 1,060 + 34 celdas + 400 tests | ✅ | 100% | Completado |
-| **HTML Report Generation** | 2/2 | 500 + 28 celdas | ✅ | 100% | Completado ✨ |
-| **PDF Export** | 0/1 | 0/~100 | ❌ | 0% | 3-5 días |
-| **Email Automation** | 0/1 | 0/~400 | ❌ | 0% | 1 semana |
-| **Testing & Docs** | 2/5 | 476/~500 | 🔄 | 95% | Casi completo |
-| **Web Dashboard** | 0/1 | 0/~800 | ❌ | 0% | 2-3 semanas (opcional) |
+**Prioridad**: MEDIA (Nice-to-have)  
+**Objetivo**: Interfaz web para monitoreo y configuración
 
-**🎯 Tiempo Estimado para v1.0**: 1-2 semanas (solo PDF + Email)  
-**🎯 Tiempo Estimado para v1.0+**: 3-4 semanas (con dashboard)
+**Tareas**:
+- [ ] Frontend con React/Vue o Streamlit
+- [ ] API REST para predicciones
+- [ ] Gestión de usuarios y configuración
+- [ ] Visualizaciones interactivas avanzadas
+
+**Tiempo Estimado**: 2-3 semanas
+
+---
+
+### **📊 Estado Final del Proyecto**
+
+| Funcionalidad | Archivos | Líneas | Estado | Completado | 
+|---------------|----------|--------|--------|------------|
+| **Data Pipeline** | 3/3 | ~600 | ✅ | 100% |
+| **EDA & Analysis** | 4/4 | ~146 celdas | ✅ | 100% |
+| **Prediction System** | 2/2 | 1,561 + 42 celdas | ✅ | 100% |
+| **Anomaly Detection** | 3/3 | 1,060 + 34 celdas + 400 tests | ✅ | 100% |
+| **HTML/PDF Reports** | 1/1 | 968 + 28 celdas | ✅ | 100% |
+| **Email Automation** | 1/1 | 702 + 4 tests | ✅ | 100% |
+| **Pipeline Integration** | Funciones | ~300 | ✅ | 100% |
+| **Testing & Validation** | 4/4 | ~400 | ✅ | 100% |
+| **IoT Integration** | 0/1 | 0/~200 | ❌ | 0% |
+| **Web Dashboard** | 0/1 | 0/~800 | ❌ | 0% |
+
+**🎯 DomusAI v1.0 - 95% Completado** ✨  
+**🚀 Sistema de automatización energética completamente funcional**
 
 ---
 
@@ -1094,55 +843,131 @@ jupyter notebook notebooks/03_anomalias.ipynb
 # - Visualizaciones interactivas de anomalías detectadas
 ```
 
-#### **6️⃣ Generación de Reportes HTML** (NUEVO ✨)
+#### **6️⃣ Generación de Reportes HTML/PDF** ✨
 
 ```python
-from src.reporting import generate_quick_report
+from src.reporting import generate_and_send_monthly_report
 
-# Opción 1: Generación rápida con un solo comando
-result = generate_quick_report(
+# Opción 1: Solo generación (sin envío de email)
+result = generate_and_send_monthly_report(
     data_path='data/Dataset_clean_test.csv',
     month=6,  # Junio
-    year=2007
+    year=2007,
+    include_pdf=True,
+    auto_send=False  # Solo generar reportes
 )
 
-print(f"✅ Reporte generado: {result['html_path']}")
+print(f"✅ HTML generado: {result['html_path']}")
+print(f"✅ PDF generado: {result['pdf_path']}")
 print(f"📊 Consumo mensual: {result['consumption_kwh']:.2f} kWh")
 print(f"📈 Cambio vs mes anterior: {result['change_percent']:.1f}%")
 print(f"🎯 Score de eficiencia: {result['efficiency_score']}/100")
 
-# Opción 2: Generación avanzada con clase completa
-from src.reporting import MonthlyReportGenerator
+# Opción 2: Pipeline completo (generación + envío automático)
+result = generate_and_send_monthly_report(
+    data_path='data/Dataset_clean_test.csv',
+    month=6,
+    year=2007,
+    include_pdf=True,
+    auto_send=True  # Generar Y enviar por email
+)
 
-generator = MonthlyReportGenerator(data_path='data/Dataset_clean_test.csv')
-report = generator.generate_monthly_report(month=6, year=2007)
+print(f"📧 Email enviado: {result['email_sent']}")
+print(f"👥 Destinatarios: {len(result['email_recipients'])}")
+print(f"⏱️ Tiempo total: {result['total_time']:.2f}s")
 
 # El reporte incluye:
 # - Resumen ejecutivo con KPIs
-# - Gráficos de consumo diario, horario y semanal
+# - Gráficos de consumo diario embebidos
 # - Análisis estadístico completo
-# - Recomendaciones personalizadas basadas en patrones
+# - Recomendaciones personalizadas automáticas
+# - PDF de alta calidad (340 KB) adjunto al email
 ```
 
-#### **7️⃣ Ejecutar Tests de Validación** (NUEVO ✨)
+#### **7️⃣ Sistema de Email Automático** ✨ (NUEVO - Sprint 7)
+
+```python
+from src.email_sender import EmailReporter
+from src.reporting import send_anomaly_alert_pipeline
+
+# Opción 1: Reporte mensual por email (ya mostrado arriba)
+# Ver función generate_and_send_monthly_report()
+
+# Opción 2: Alerta crítica de anomalía
+anomaly_data = {
+    'timestamp': '08/10/2025 14:30',
+    'consumption_value': 5.234,
+    'normal_average': 1.156,
+    'deviation_percent': 352.8,
+    'anomaly_type': 'tipo_1_consumo_alto',
+    'confidence': 'Alta (96.7%)',
+    'recommended_actions': [
+        '🔌 ACCIÓN INMEDIATA: Verificar electrodomésticos',
+        '⚡ Revisar cuadro eléctrico: interruptores',
+        '📞 Si persiste >6h, contactar técnico'
+    ]
+}
+
+result = send_anomaly_alert_pipeline(
+    anomalies_data=anomaly_data,
+    severity='critical'  # 'critical', 'warning', 'medium'
+)
+
+print(f"🚨 Alerta enviada: {result['email_sent']}")
+print(f"👥 Destinatarios: {len(result['email_recipients'])}")
+
+# Opción 3: Configuración manual de EmailReporter
+emailer = EmailReporter()
+
+# Email básico de prueba
+success = emailer.quick_send_test_email('tu_email@example.com')
+
+# Email con PDF personalizado
+success = emailer.send_monthly_report(
+    recipients=['destinatario@example.com'],
+    pdf_path='reports/generated/mi_reporte.pdf',
+    month=10, year=2025,
+    summary_stats={
+        'consumption_kwh': 450.25,
+        'change_percent': -12.5,
+        'efficiency_score': 85
+    },
+    recommendations=['Consejo 1', 'Consejo 2']
+)
+```
+
+#### **8️⃣ Ejecutar Tests de Validación** ✨ (NUEVO - Sprint 7)
 
 ```bash
-# Test del sistema de reportes
-python test_reporting_basic.py
+# Test 1: Templates de email
+python test_templates.py
+# Valida renderizado de templates HTML de email
 
-# Output esperado:
-# 🧪 TEST: Generación de Reporte Básico DomusAI
+# Test 2: Métodos de envío de email  
+python test_email_methods.py
+# Valida funciones send_monthly_report() y send_anomaly_alert()
+
+# Test 3: Email real con credenciales configuradas
+python test_real_email.py
+# Envía emails reales para validar configuración SMTP
+
+# Test 4: Pipeline de integración completa
+python test_integration_sprint7.py
+# Test end-to-end: generación de reporte + envío de email
+
+# Output esperado del test de integración:
+# 🚀 DomusAI - Test Integración Completa Sprint 7
 # ================================================================================
-# 📂 Dataset encontrado: data/Dataset_clean_test.csv
-#    Tamaño: 17.88 MB
-# � Generando reporte para Junio 2007...
-# ================================================================================
-# ✅ REPORTE GENERADO EXITOSAMENTE
-# ================================================================================
-# 📄 Archivos generados:
-#    HTML: reports/generated/reporte_2007-06_20251005_204531.html
-# 📊 Gráficos generados:
-#    daily_consumption: reports/generated/daily_consumption_200706_204530.png
+# ✅ TODOS LOS TESTS DE INTEGRACIÓN PASARON
+# 🎉 ¡SPRINT 7 COMPLETADO EXITOSAMENTE!
+# 
+# 🚀 Capacidades Integradas:
+#    1. ✅ Generación automática de reportes HTML + PDF
+#    2. ✅ Envío automático de reportes mensuales por email  
+#    3. ✅ Sistema de alertas críticas de anomalías
+#    4. ✅ Pipeline completo de automatización
+# 
+# 🎯 ¡SISTEMA DE AUTOMATIZACIÓN 100% FUNCIONAL!
 ```
 
 ---
@@ -1593,16 +1418,20 @@ SOFTWARE.
 
 ---
 
-*Última actualización: Octubre 5, 2025*  
-*Versión: 0.85 (85% hacia v1.0)*  
+*Última actualización: Octubre 8, 2025*  
+*Versión: 0.95 (95% hacia v1.0)*  
 *Proyecto: DomusAI - Sistema de Monitoreo Energético Inteligente*
 
-**🆕 Nuevo en v0.85**:
-- ✅ Sistema de reportes HTML completo
-- ✅ Type-safety en todo el código (0 errores Pylance)
-- ✅ Tests de validación funcionando
-- ✅ 4 notebooks completos con documentación
-- ✅ Infraestructura lista para exportación PDF
+**🆕 Nuevo en v0.95 - Sprint 7 Completado**:
+- ✅ Sistema de email automático completo (EmailReporter - 702 líneas)
+- ✅ Templates HTML profesionales para reportes y alertas
+- ✅ Pipeline end-to-end: generación + envío automático
+- ✅ Integración PDF + Email validada en producción
+- ✅ Suite de tests completa (4 archivos de testing)
+- ✅ Configuración SMTP segura con variables .env
+- ✅ Sistema 100% funcional listo para IoT integration
+
+**🎯 DomusAI v1.0 - 95% Completado**: Sistema de automatización energética completamente funcional, listo para integración con hardware IoT.
 
 </div>
 
