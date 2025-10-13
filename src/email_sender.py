@@ -267,6 +267,354 @@ class EmailReporter:
             return False
 
 
+    def send_monthly_report(
+        self,
+        recipients: List[str],
+        pdf_path: str,
+        month: int,
+        year: int,
+        summary_stats: Dict,
+        recommendations: Optional[List[str]] = None,
+        anomalies_csv: Optional[str] = None
+    ) -> bool:
+        """
+        📊 Enviar reporte mensual con PDF adjunto.
+        
+        Args:
+            recipients: Lista de emails destino
+            pdf_path: Ruta del PDF del reporte
+            month: Mes del reporte (1-12)
+            year: Año del reporte
+            summary_stats: Diccionario con estadísticas:
+                - consumption_kwh: float
+                - change_percent: float
+                - efficiency_score: int
+                - critical_anomalies: int
+                - total_records: int
+            recommendations: Lista de recomendaciones personalizadas
+            anomalies_csv: Ruta opcional del CSV de anomalías
+            
+        Returns:
+            True si se envió correctamente
+            
+        Example:
+            >>> emailer = EmailReporter()
+            >>> emailer.send_monthly_report(
+            ...     recipients=['usuario@example.com'],
+            ...     pdf_path='reports/generated/reporte_2007-06.pdf',
+            ...     month=6,
+            ...     year=2007,
+            ...     summary_stats={
+            ...         'consumption_kwh': 594.71,
+            ...         'change_percent': -18.9,
+            ...         'efficiency_score': 78,
+            ...         'critical_anomalies': 5,
+            ...         'total_records': 30240
+            ...     },
+            ...     recommendations=[
+            ...         'Reducir consumo nocturno entre 02:00-05:00',
+            ...         'Optimizar uso de electrodomésticos en horas pico'
+            ...     ]
+            ... )
+        """
+        try:
+            logger.info(f"📊 Enviando reporte mensual {year}-{month:02d}")
+            
+            # Nombres de meses en español
+            month_names = [
+                'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+            ]
+            
+            # Validar mes
+            if not (1 <= month <= 12):
+                raise ValueError(f"Mes inválido: {month}. Debe estar entre 1 y 12.")
+            
+            # Preparar datos para template
+            template_data = {
+                # Información básica
+                'month_name': month_names[month - 1],
+                'year': year,
+                'period': f"{month_names[month - 1]} {year}",
+                'generation_date': datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                
+                # Estadísticas principales (con valores por defecto)
+                'total_records': summary_stats.get('total_records', 0),
+                'consumption_kwh': summary_stats.get('consumption_kwh', 0.0),
+                'change_percent': summary_stats.get('change_percent', 0.0),
+                'efficiency_score': summary_stats.get('efficiency_score', 0),
+                'critical_anomalies': summary_stats.get('critical_anomalies', 0),
+                
+                # Recomendaciones personalizadas
+                'recommendations': recommendations or [
+                    'Mantener patrón de consumo actual, está dentro de rangos normales',
+                    'Considerar programar electrodomésticos en horarios de menor demanda',
+                    'Revisar periódicamente el estado de tus equipos eléctricos',
+                    'Monitorear las horas de mayor consumo para identificar oportunidades'
+                ],
+                
+                # Información técnica adicional
+                'technical_summary': True,
+                'data_quality': summary_stats.get('data_quality', 'Excelente'),
+                'peak_hours': summary_stats.get('peak_hours', '07:00-09:00, 19:00-22:00'),
+                
+                # Archivos adjuntos
+                'anomalies_csv': anomalies_csv is not None,
+                'predictions_data': summary_stats.get('has_predictions', False)
+            }
+            
+            # Cargar y renderizar template
+            try:
+                template = self.jinja_env.get_template('monthly_report_email.html')
+                html_body = template.render(**template_data)
+                logger.debug(f"✅ Template renderizado: {len(html_body):,} caracteres")
+            except Exception as e:
+                logger.error(f"❌ Error renderizando template: {e}")
+                raise ValueError(f"Error en template monthly_report_email.html: {e}")
+            
+            # Preparar adjuntos
+            attachments = []
+            
+            # PDF del reporte (obligatorio)
+            pdf_path_obj = Path(pdf_path)
+            if not pdf_path_obj.exists():
+                logger.warning(f"⚠️ PDF no encontrado: {pdf_path}")
+                # Continuar sin PDF (email informativo)
+            else:
+                attachments.append(str(pdf_path_obj))
+                logger.debug(f"📎 PDF adjunto: {pdf_path_obj.name}")
+            
+            # CSV de anomalías (opcional)
+            if anomalies_csv:
+                anomalies_path = Path(anomalies_csv)
+                if anomalies_path.exists():
+                    attachments.append(str(anomalies_path))
+                    logger.debug(f"📎 CSV adjunto: {anomalies_path.name}")
+                else:
+                    logger.warning(f"⚠️ CSV de anomalías no encontrado: {anomalies_csv}")
+            
+            # Crear asunto personalizado
+            subject = f"📊 Reporte Mensual DomusAI - {month_names[month - 1]} {year}"
+            
+            # Log de información del envío
+            logger.info(f"   Destinatarios: {len(recipients)}")
+            logger.info(f"   Adjuntos: {len(attachments)}")
+            logger.info(f"   Consumo: {summary_stats.get('consumption_kwh', 0):.1f} kWh")
+            logger.info(f"   Cambio: {summary_stats.get('change_percent', 0):+.1f}%")
+            
+            # Enviar email
+            success = self.send_email(
+                recipients=recipients,
+                subject=subject,
+                html_body=html_body,
+                attachments=attachments
+            )
+            
+            if success:
+                logger.info(f"✅ Reporte mensual {year}-{month:02d} enviado exitosamente")
+                logger.info(f"   Total destinatarios: {len(recipients)}")
+                logger.info(f"   Total adjuntos: {len(attachments)}")
+            else:
+                logger.error(f"❌ Error enviando reporte mensual {year}-{month:02d}")
+            
+            return success
+        
+        except Exception as e:
+            logger.error(f"❌ Error en send_monthly_report: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            return False
+
+
+    def send_anomaly_alert(
+        self,
+        recipients: List[str],
+        anomalies: Dict,
+        severity: str = 'critical',
+        anomalies_csv: Optional[str] = None
+    ) -> bool:
+        """
+        🚨 Enviar alerta de anomalías críticas.
+        
+        Args:
+            recipients: Lista de emails destino
+            anomalies: Diccionario con información de anomalías:
+                - timestamp: str o datetime de detección
+                - consumption_value: float del consumo anómalo
+                - normal_average: float del consumo normal
+                - deviation_percent: float del porcentaje de desviación
+                - anomaly_type: str tipo de anomalía
+                - confidence: str nivel de confianza
+                - duration: str duración estimada
+                - anomaly_list: List[Dict] lista de anomalías múltiples (opcional)
+            severity: Severidad general ('critical', 'warning', 'medium')
+            anomalies_csv: Ruta del CSV con todas las anomalías
+            
+        Returns:
+            True si se envió correctamente
+            
+        Example:
+            >>> emailer = EmailReporter()
+            >>> anomaly_data = {
+            ...     'timestamp': '06/06/2007 14:30',
+            ...     'consumption_value': 4.567,
+            ...     'normal_average': 1.089,
+            ...     'deviation_percent': 319.4,
+            ...     'anomaly_type': 'tipo_1_consumo_alto',
+            ...     'confidence': 'Alta (94.2%)',
+            ...     'duration': '45 minutos'
+            ... }
+            >>> emailer.send_anomaly_alert(
+            ...     recipients=['admin@example.com'],
+            ...     anomalies=anomaly_data,
+            ...     severity='critical'
+            ... )
+        """
+        try:
+            logger.info(f"🚨 Enviando alerta de anomalías ({severity})")
+            
+            # Validar severidad
+            valid_severities = ['critical', 'warning', 'medium', 'low']
+            if severity not in valid_severities:
+                logger.warning(f"⚠️ Severidad '{severity}' no válida, usando 'critical'")
+                severity = 'critical'
+            
+            # Extraer datos de anomalías con valores por defecto
+            anomaly_timestamp = anomalies.get('timestamp', 'N/A')
+            consumption_value = anomalies.get('consumption_value', 0.0)
+            normal_average = anomalies.get('normal_average', 1.089)  # Promedio del dataset
+            deviation_percent = anomalies.get('deviation_percent', 0.0)
+            anomaly_type = anomalies.get('anomaly_type', 'Consumo anómalo detectado')
+            confidence = anomalies.get('confidence', 'Alta')
+            duration = anomalies.get('duration', 'En análisis')
+            
+            # Formatear timestamp si es necesario
+            if hasattr(anomaly_timestamp, 'strftime'):
+                anomaly_timestamp = anomaly_timestamp.strftime('%d/%m/%Y %H:%M')
+            
+            # Recomendaciones según tipo de anomalía
+            recommendations_map = {
+                'tipo_1_consumo_alto': [
+                    '🔌 Verificar inmediatamente que no haya electrodomésticos defectuosos',
+                    '🕐 Revisar el consumo en las próximas 2 horas',
+                    '⚡ Considerar apagar equipos no esenciales temporalmente',
+                    '📞 Si persiste por más de 4 horas, contactar a un electricista'
+                ],
+                'tipo_3_temporal': [
+                    '🌙 Anomalía detectada en horario nocturno (valle)',
+                    '🔍 Revisar si hay equipos encendidos innecesariamente',
+                    '⚙️ Verificar timers de electrodomésticos programables',
+                    '💡 Considerar desconectar equipos en standby'
+                ],
+                'tipo_4_sensor': [
+                    '🔧 Posible fallo en el sensor de medición',
+                    '📊 Verificar las conexiones del sistema de monitoreo',
+                    '🔄 Reiniciar el dispositivo ESP32/Arduino',
+                    '📡 Comprobar conectividad MQTT si aplica'
+                ],
+                'default': [
+                    '🔍 Revisar el análisis completo en el archivo adjunto',
+                    '📊 Monitorear el consumo en las próximas horas',
+                    '⚠️ Si el problema persiste, considerar una inspección profesional',
+                    '📞 Contactar soporte técnico si es necesario'
+                ]
+            }
+            
+            # Seleccionar recomendaciones según tipo
+            recommended_actions = anomalies.get(
+                'recommended_actions',
+                recommendations_map.get(anomaly_type, recommendations_map['default'])
+            )
+            
+            # Preparar lista de anomalías múltiples
+            anomaly_list = anomalies.get('anomaly_list', [])
+            
+            # Preparar datos para template
+            template_data = {
+                # Información básica
+                'severity': severity,
+                'detection_time': datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                'generation_time': datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                
+                # Detalles de la anomalía
+                'anomaly_timestamp': anomaly_timestamp,
+                'anomaly_type': anomaly_type,
+                'consumption_value': f"{consumption_value:.3f}",
+                'normal_average': f"{normal_average:.3f}",
+                'deviation_percent': f"{deviation_percent:+.1f}",
+                'duration': duration,
+                'confidence': confidence,
+                
+                # Lista de anomalías múltiples
+                'anomalies': anomaly_list,
+                
+                # Recomendaciones de acción
+                'recommended_actions': recommended_actions,
+                
+                # Información adicional
+                'detailed_report': anomalies_csv is not None
+            }
+            
+            # Cargar y renderizar template
+            try:
+                template = self.jinja_env.get_template('anomaly_alert_email.html')
+                html_body = template.render(**template_data)
+                logger.debug(f"✅ Template renderizado: {len(html_body):,} caracteres")
+            except Exception as e:
+                logger.error(f"❌ Error renderizando template: {e}")
+                raise ValueError(f"Error en template anomaly_alert_email.html: {e}")
+            
+            # Preparar adjuntos
+            attachments = []
+            if anomalies_csv:
+                csv_path = Path(anomalies_csv)
+                if csv_path.exists():
+                    attachments.append(str(csv_path))
+                    logger.debug(f"📎 CSV adjunto: {csv_path.name}")
+                else:
+                    logger.warning(f"⚠️ CSV de anomalías no encontrado: {anomalies_csv}")
+            
+            # Asunto según severidad
+            subject_map = {
+                'critical': '🚨 ALERTA CRÍTICA - Anomalía Detectada en Consumo Energético',
+                'warning': '⚠️ ALERTA - Consumo Anómalo Detectado',
+                'medium': 'ℹ️ Notificación - Anomalía de Prioridad Media',
+                'low': '📊 Información - Variación en Consumo Detectada'
+            }
+            subject = subject_map.get(severity, subject_map['warning'])
+            
+            # Log de información del envío
+            logger.info(f"   Tipo: {anomaly_type}")
+            logger.info(f"   Consumo: {consumption_value:.3f} kW")
+            logger.info(f"   Desviación: {deviation_percent:+.1f}%")
+            logger.info(f"   Destinatarios: {len(recipients)}")
+            logger.info(f"   Adjuntos: {len(attachments)}")
+            
+            # Enviar email
+            success = self.send_email(
+                recipients=recipients,
+                subject=subject,
+                html_body=html_body,
+                attachments=attachments
+            )
+            
+            if success:
+                logger.info(f"✅ Alerta de anomalías ({severity}) enviada exitosamente")
+                anomaly_count = len(anomaly_list) if anomaly_list else 1
+                logger.info(f"   Total anomalías: {anomaly_count}")
+                logger.info(f"   Severidad: {severity}")
+            else:
+                logger.error(f"❌ Error enviando alerta de anomalías ({severity})")
+            
+            return success
+        
+        except Exception as e:
+            logger.error(f"❌ Error en send_anomaly_alert: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            return False
+
+
 # ============================================================================
 # FUNCIONES DE CONVENIENCIA
 # ============================================================================
