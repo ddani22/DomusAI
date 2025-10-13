@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerta de Anomalía - DomusAI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        /* Headers dinámicos por severidad */
+        .header-critical {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header-medium {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        /* Alert principal */
+        .main-alert {
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid;
+        }
+        .main-alert.critical {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+            color: #991b1b;
+        }
+        .main-alert.warning {
+            background: #fefce8;
+            border-left-color: #f59e0b;
+            color: #92400e;
+        }
+        .main-alert.medium {
+            background: #eff6ff;
+            border-left-color: #3b82f6;
+            color: #1e40af;
+        }
+        
+        .main-alert h2 {
+            margin-top: 0;
+            font-size: 22px;
+        }
+        
+        /* Tabla de detalles */
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .details-table th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .details-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #4b5563;
+        }
+        .details-table td:first-child {
+            font-weight: 600;
+            color: #374151;
+            background: #f9fafb;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #ef4444;
+        }
+        
+        /* Lista de anomalías múltiples */
+        .anomaly-list {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            border: 1px solid #e5e7eb;
+        }
+        .anomaly-list h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        .anomaly-item {
+            background: white;
+            padding: 12px;
+            margin: 8px 0;
+            border-left: 3px solid #ef4444;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .anomaly-item.warning {
+            border-left-color: #f59e0b;
+        }
+        .anomaly-item.medium {
+            border-left-color: #3b82f6;
+        }
+        
+        .anomaly-timestamp {
+            font-weight: bold;
+            color: #374151;
+        }
+        .anomaly-value {
+            color: #ef4444;
+            font-weight: 600;
+        }
+        .anomaly-type {
+            color: #6b7280;
+            font-size: 13px;
+            font-style: italic;
+        }
+        
+        /* Recomendaciones urgentes */
+        .urgent-actions {
+            background: linear-gradient(135deg, #fef2f2 0%, #fef7f7 100%);
+            border: 2px solid #fecaca;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .urgent-actions h3 {
+            margin-top: 0;
+            color: #991b1b;
+        }
+        .urgent-actions ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .urgent-actions li {
+            margin: 10px 0;
+            color: #7f1d1d;
+        }
+        
+        /* Botones de acción */
+        .action-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .button-urgent {
+            display: inline-block;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+            transition: all 0.2s;
+        }
+        .button-urgent:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+        }
+        
+        .button-secondary {
+            display: inline-block;
+            background: #6b7280;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        /* Gráfico de progreso (opcional) */
+        .severity-indicator {
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .severity-bar {
+            background: #e5e7eb;
+            height: 8px;
+            border-radius: 4px;
+            position: relative;
+            margin: 10px 0;
+        }
+        .severity-fill.critical {
+            background: linear-gradient(90deg, #fbbf24 0%, #ef4444 100%);
+            height: 100%;
+            border-radius: 4px;
+            width: 90%;
+        }
+        .severity-fill.warning {
+            background: linear-gradient(90deg, #10b981 0%, #f59e0b 100%);
+            height: 100%;
+            border-radius: 4px;
+            width: 70%;
+        }
+        
+        /* Footer */
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .footer a {
+            color: #ef4444;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            .content {
+                padding: 20px;
+            }
+            .header-critical, .header-warning, .header-medium {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            .action-buttons {
+                text-align: center;
+            }
+            .button-secondary {
+                margin-left: 0;
+                margin-top: 10px;
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header dinámico por severidad -->
+        <div class="header-{{ severity|default('critical') }}">
+            <h1>
+                {% if severity == 'critical' %}🚨 ALERTA CRÍTICA
+                {% elif severity == 'warning' %}⚠️ ALERTA IMPORTANTE  
+                {% elif severity == 'medium' %}ℹ️ ALERTA INFORMATIVA
+                {% else %}🔔 NOTIFICACIÓN{% endif %}
+            </h1>
+            <p>Anomalía detectada el {{ detection_time }}</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Alerta principal -->
+            <div class="main-alert {{ severity|default('critical') }}">
+                <h2>
+                    {% if severity == 'critical' %}⚡ Consumo anómalo detectado - Acción inmediata requerida
+                    {% elif severity == 'warning' %}📊 Patrón de consumo inusual detectado
+                    {% else %}📈 Variación en el consumo energético{% endif %}
+                </h2>
+                <p><strong>Se han detectado anomalías significativas en tu sistema de monitoreo energético que requieren tu atención.</strong></p>
+                {% if severity == 'critical' %}
+                <p><em>⏰ Esta alerta requiere verificación en las próximas 2-4 horas para prevenir posibles problemas.</em></p>
+                {% endif %}
+            </div>
+            
+            <!-- Indicador de severidad -->
+            <div class="severity-indicator">
+                <strong>Nivel de Severidad: {{ severity|title }}</strong>
+                <div class="severity-bar">
+                    <div class="severity-fill {{ severity }}"></div>
+                </div>
+            </div>
+            
+            <!-- Detalles de la anomalía -->
+            <h3>📊 Detalles de la Anomalía</h3>
+            <table class="details-table">
+                <tr>
+                    <td>Fecha/Hora detectada:</td>
+                    <td><strong>{{ anomaly_timestamp|default('N/A') }}</strong></td>
+                </tr>
+                <tr>
+                    <td>Tipo de anomalía:</td>
+                    <td><strong>{{ anomaly_type|default('Consumo anómalo') }}</strong></td>
+                </tr>
+                <tr>
+                    <td>Consumo detectado:</td>
+                    <td><span class="highlight">{{ consumption_value|default('N/A') }} kW</span></td>
+                </tr>
+                <tr>
+                    <td>Consumo promedio normal:</td>
+                    <td>{{ normal_average|default('N/A') }} kW</td>
+                </tr>
+                <tr>
+                    <td>Desviación:</td>
+                    <td><span class="highlight">{{ deviation_percent|default('N/A') }}%</span></td>
+                </tr>
+                <tr>
+                    <td>Duración estimada:</td>
+                    <td>{{ duration|default('En análisis') }}</td>
+                </tr>
+                <tr>
+                    <td>Confianza de detección:</td>
+                    <td>{{ confidence|default('Alta') }}</td>
+                </tr>
+            </table>
+            
+            <!-- Lista de anomalías múltiples -->
+            {% if anomalies and anomalies|length > 1 %}
+            <div class="anomaly-list">
+                <h3>📋 Anomalías Relacionadas ({{ anomalies|length }} total)</h3>
+                {% for anomaly in anomalies[:5] %}
+                <div class="anomaly-item {{ anomaly.severity|default('critical') }}">
+                    <div class="anomaly-timestamp">{{ anomaly.timestamp.strftime('%d/%m/%Y %H:%M') if anomaly.timestamp else 'N/A' }}</div>
+                    <div class="anomaly-value">{{ anomaly.value|default('N/A') }} kW</div>
+                    <div class="anomaly-type">{{ anomaly.type|default('Tipo no especificado') }}</div>
+                </div>
+                {% endfor %}
+                {% if anomalies|length > 5 %}
+                <p style="color: #6b7280; font-size: 14px; margin-top: 15px; text-align: center;">
+                    <em>... y {{ anomalies|length - 5 }} anomalías adicionales. Ver archivo CSV adjunto para análisis completo.</em>
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Acciones recomendadas urgentes -->
+            <div class="urgent-actions">
+                <h3>🛠️ Acciones Inmediatas Recomendadas</h3>
+                {% if recommended_actions and recommended_actions|length > 0 %}
+                <ul>
+                    {% for action in recommended_actions %}
+                    <li>{{ action }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <ul>
+                    <li><strong>🔍 Inspección visual:</strong> Verifica que no haya electrodomésticos defectuosos o conexiones sueltas</li>
+                    <li><strong>⚡ Verificación de carga:</strong> Revisa si hay equipos nuevos o modificaciones recientes</li>
+                    <li><strong>🕐 Monitoreo continuo:</strong> Observa el consumo en las próximas 2-4 horas</li>
+                    <li><strong>📞 Contacto técnico:</strong> Si el problema persiste, considera consultar a un electricista</li>
+                </ul>
+                {% endif %}
+            </div>
+            
+            <!-- Información adicional según tipo -->
+            {% if anomaly_type == 'tipo_1_consumo_alto' %}
+            <div class="main-alert warning">
+                <strong>⚡ Consumo Alto Detectado:</strong> El sistema ha identificado un pico de consumo significativamente superior al patrón normal.
+                Esto podría indicar un electrodoméstico defectuoso o un cambio en los hábitos de uso.
+            </div>
+            {% elif anomaly_type == 'tipo_3_temporal' %}
+            <div class="main-alert medium">
+                <strong>🌙 Anomalía Temporal:</strong> Se detectó consumo inusual en horarios de baja demanda (valle).
+                Verifica que no haya equipos programados incorrectamente.
+            </div>
+            {% elif anomaly_type == 'tipo_4_sensor' %}
+            <div class="main-alert critical">
+                <strong>🔧 Posible Fallo de Sensor:</strong> Los datos sugieren un problema en el sistema de medición.
+                Verifica las conexiones del ESP32/Arduino y reinicia el sistema si es necesario.
+            </div>
+            {% endif %}
+            
+            <!-- Botones de acción -->
+            <div class="action-buttons">
+                <a href="#" class="button-urgent">🔍 Ver Análisis Detallado</a>
+                <a href="#" class="button-secondary">📊 Dashboard en Vivo</a>
+            </div>
+            
+            <!-- Información de archivos adjuntos -->
+            <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px; margin-top: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: #374151; font-size: 14px;">📎 Archivos Adjuntos</h4>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li style="color: #6b7280; font-size: 13px;">📋 Análisis completo de anomalías (CSV)</li>
+                    {% if detailed_report %}
+                    <li style="color: #6b7280; font-size: 13px;">📄 Reporte técnico detallado (PDF)</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>DomusAI</strong> - Sistema Inteligente de Monitoreo Energético</p>
+            <p>Esta es una alerta automática generada por detección de anomalías.</p>
+            <p style="margin-top: 10px;">
+                <a href="#">⚙️ Configurar alertas</a> •
+                <a href="#">📞 Soporte de emergencia</a> •
+                <a href="#">❓ Guía de solución</a>
+            </p>
+            <p style="margin-top: 10px; color: #9ca3af;">
+                Alerta generada: {{ generation_time|default(detection_time) }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>
