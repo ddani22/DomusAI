@@ -699,3 +699,4 @@ if __name__ == "__main__":
     else:
         print("\n❌ Error enviando email de prueba")
         print("   Verifica tu configuración en .env")
+
