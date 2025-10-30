@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Semanal DomusAI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        .content {
+            padding: 30px;
+        }
+        
+        /* Resumen semanal */
+        .weekly-summary {
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border-left: 4px solid #8b5cf6;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .weekly-summary h2 {
+            margin-top: 0;
+            color: #6b21a8;
+            font-size: 20px;
+        }
+        
+        /* KPIs semanales */
+        .weekly-kpis {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .kpi-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 18px;
+            text-align: center;
+        }
+        .kpi-card.highlight {
+            border-color: #8b5cf6;
+            background: #f5f3ff;
+        }
+        .kpi-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .kpi-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #7c3aed;
+        }
+        .kpi-change {
+            font-size: 13px;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+        .kpi-change.positive {
+            color: #10b981;
+        }
+        .kpi-change.negative {
+            color: #ef4444;
+        }
+        .kpi-change.neutral {
+            color: #6b7280;
+        }
+        
+        /* Consumo diario */
+        .daily-breakdown {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #e5e7eb;
+        }
+        .daily-breakdown h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        .day-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .day-row:last-child {
+            border-bottom: none;
+        }
+        .day-name {
+            width: 100px;
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            align-items: center;
+        }
+        .day-name.best {
+            color: #10b981;
+        }
+        .day-name.worst {
+            color: #ef4444;
+        }
+        .day-bar {
+            flex: 1;
+            margin: 0 15px;
+        }
+        .day-bar-fill {
+            height: 24px;
+            border-radius: 12px;
+            background: linear-gradient(90deg, #c7d2fe 0%, #8b5cf6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: #4c1d95;
+            font-weight: 600;
+            font-size: 13px;
+            transition: width 0.5s ease;
+        }
+        .day-bar-fill.high {
+            background: linear-gradient(90deg, #fecaca 0%, #ef4444 100%);
+            color: #7f1d1d;
+        }
+        .day-bar-fill.low {
+            background: linear-gradient(90deg, #d1fae5 0%, #10b981 100%);
+            color: #065f46;
+        }
+        .day-value {
+            width: 80px;
+            text-align: right;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        /* Mejor y peor día */
+        .day-highlights {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .highlight-box {
+            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid;
+        }
+        .highlight-box.best {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+        .highlight-box.worst {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        .highlight-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .highlight-box.best h4 {
+            color: #065f46;
+        }
+        .highlight-box.worst h4 {
+            color: #991b1b;
+        }
+        .highlight-day {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .highlight-box.best .highlight-day {
+            color: #059669;
+        }
+        .highlight-box.worst .highlight-day {
+            color: #dc2626;
+        }
+        .highlight-value {
+            font-size: 16px;
+            color: #6b7280;
+            margin: 5px 0;
+        }
+        
+        /* Tendencia semanal */
+        .trend-indicator {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+        .trend-indicator h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        .trend-arrow {
+            font-size: 48px;
+            margin: 15px 0;
+        }
+        .trend-arrow.up {
+            color: #ef4444;
+        }
+        .trend-arrow.down {
+            color: #10b981;
+        }
+        .trend-arrow.stable {
+            color: #6b7280;
+        }
+        .trend-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+        }
+        .trend-detail {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 10px;
+        }
+        
+        /* Comparación con semana anterior */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .comparison-table th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .comparison-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #4b5563;
+        }
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+        .comparison-table .metric-name {
+            font-weight: 600;
+            color: #374151;
+        }
+        .comparison-table .change-positive {
+            color: #10b981;
+            font-weight: 600;
+        }
+        .comparison-table .change-negative {
+            color: #ef4444;
+            font-weight: 600;
+        }
+        
+        /* Recomendaciones */
+        .recommendations {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .recommendations h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        .recommendations ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .recommendations li {
+            margin: 10px 0;
+            color: #4b5563;
+        }
+        
+        /* CTA */
+        .cta-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Attachments */
+        .attachments {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .attachments h4 {
+            margin: 0 0 10px 0;
+            color: #374151;
+            font-size: 14px;
+        }
+        .attachments ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .attachments li {
+            color: #6b7280;
+            font-size: 13px;
+        }
+        
+        /* Footer */
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .footer a {
+            color: #8b5cf6;
+            text-decoration: none;
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            .weekly-kpis {
+                grid-template-columns: 1fr;
+            }
+            .day-highlights {
+                grid-template-columns: 1fr;
+            }
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📅 Reporte Semanal DomusAI</h1>
+            <p>{{ week_start|default("21 Oct") }} - {{ week_end|default("27 Oct, 2025") }}</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Resumen Semanal -->
+            <div class="weekly-summary">
+                <h2>📊 Resumen de la Semana</h2>
+                <p><strong>Período:</strong> {{ week_start_full|default("21/10/2025") }} - {{ week_end_full|default("27/10/2025") }}</p>
+                <p><strong>Registros procesados:</strong> {{ total_records|default(10080)|format_number }}</p>
+                <p><strong>Días analizados:</strong> 7 días completos</p>
+            </div>
+            
+            <!-- KPIs Semanales -->
+            <h2>⚡ Indicadores de la Semana</h2>
+            <div class="weekly-kpis">
+                <div class="kpi-card highlight">
+                    <div class="kpi-label">Consumo Total</div>
+                    <div class="kpi-value">{{ total_weekly_kwh|default(124.5)|round(1) }} kWh</div>
+                    <div class="kpi-change {% if change_vs_last_week|default(0) > 0 %}negative{% else %}positive{% endif %}">
+                        {% if change_vs_last_week|default(0) >= 0 %}↑{% else %}↓{% endif %} 
+                        {{ change_vs_last_week|default(-3.2)|abs|round(1) }}% vs semana anterior
+                    </div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-label">Promedio Diario</div>
+                    <div class="kpi-value">{{ avg_daily_kwh|default(17.8)|round(1) }} kWh</div>
+                    <div class="kpi-change neutral">
+                        Por día
+                    </div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-label">Potencia Media</div>
+                    <div class="kpi-value">{{ avg_power_kw|default(0.742)|round(3) }} kW</div>
+                    <div class="kpi-change neutral">
+                        Promedio continuo
+                    </div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-label">Eficiencia Semanal</div>
+                    <div class="kpi-value">{{ efficiency_score|default(87) }}/100</div>
+                    <div class="kpi-change {% if efficiency_score|default(87) >= 85 %}positive{% else %}neutral{% endif %}">
+                        {% if efficiency_score|default(87) >= 85 %}✓{% else %}ℹ️{% endif %} 
+                        {{ "Excelente" if efficiency_score|default(87) >= 85 else "Buena" }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mejor y Peor Día -->
+            <h3>🏆 Días Destacados</h3>
+            <div class="day-highlights">
+                <div class="highlight-box best">
+                    <h4>🟢 Mejor Día</h4>
+                    <div class="highlight-day">{{ best_day|default("Miércoles") }}</div>
+                    <div class="highlight-value">{{ best_day_kwh|default(15.2)|round(1) }} kWh</div>
+                    <p style="font-size: 12px; color: #6b7280; margin: 10px 0 0 0;">
+                        {{ ((avg_daily_kwh|default(17.8) - best_day_kwh|default(15.2)) / avg_daily_kwh|default(17.8) * 100)|round(0)|int }}% bajo el promedio
+                    </p>
+                </div>
+                
+                <div class="highlight-box worst">
+                    <h4>🔴 Mayor Consumo</h4>
+                    <div class="highlight-day">{{ worst_day|default("Sábado") }}</div>
+                    <div class="highlight-value">{{ worst_day_kwh|default(21.3)|round(1) }} kWh</div>
+                    <p style="font-size: 12px; color: #6b7280; margin: 10px 0 0 0;">
+                        {{ ((worst_day_kwh|default(21.3) - avg_daily_kwh|default(17.8)) / avg_daily_kwh|default(17.8) * 100)|round(0)|int }}% sobre el promedio
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Desglose Diario -->
+            <div class="daily-breakdown">
+                <h3>📊 Consumo por Día</h3>
+                {% set days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] %}
+                {% set daily_values = daily_consumption|default([18.2, 16.9, 15.2, 17.5, 18.8, 21.3, 16.6]) %}
+                {% set max_daily = daily_values|max %}
+                
+                {% for i in range(7) %}
+                <div class="day-row">
+                    <div class="day-name {% if daily_values[i] == daily_values|min %}best{% elif daily_values[i] == daily_values|max %}worst{% endif %}">
+                        {% if daily_values[i] == daily_values|min %}🟢{% elif daily_values[i] == daily_values|max %}🔴{% else %}⚪{% endif %} 
+                        {{ days[i] }}
+                    </div>
+                    <div class="day-bar">
+                        <div class="day-bar-fill {% if daily_values[i] > avg_daily_kwh|default(17.8) * 1.1 %}high{% elif daily_values[i] < avg_daily_kwh|default(17.8) * 0.9 %}low{% endif %}" 
+                             style="width: {{ (daily_values[i] / max_daily * 100)|round(0) }}%;">
+                            {{ daily_values[i]|round(1) }}
+                        </div>
+                    </div>
+                    <div class="day-value">{{ daily_values[i]|round(1) }} kWh</div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Tendencia Semanal -->
+            <div class="trend-indicator">
+                <h3>📈 Tendencia de la Semana</h3>
+                {% set trend_direction = "down" if change_vs_last_week|default(-3.2) < -5 else ("up" if change_vs_last_week|default(-3.2) > 5 else "stable") %}
+                <div class="trend-arrow {{ trend_direction }}">
+                    {% if trend_direction == "down" %}↓
+                    {% elif trend_direction == "up" %}↑
+                    {% else %}→{% endif %}
+                </div>
+                <div class="trend-text">
+                    {% if trend_direction == "down" %}
+                    ✅ Tendencia Descendente
+                    {% elif trend_direction == "up" %}
+                    ⚠️ Tendencia Ascendente
+                    {% else %}
+                    ℹ️ Consumo Estable
+                    {% endif %}
+                </div>
+                <div class="trend-detail">
+                    {% if trend_direction == "down" %}
+                    Reducción del {{ change_vs_last_week|default(-3.2)|abs|round(1) }}% respecto a la semana anterior.<br>
+                    ¡Excelente trabajo! Continúa con los hábitos de ahorro energético.
+                    {% elif trend_direction == "up" %}
+                    Incremento del {{ change_vs_last_week|default(5.5)|round(1) }}% respecto a la semana anterior.<br>
+                    Revisa posibles cambios en patrones de uso o equipos nuevos.
+                    {% else %}
+                    Consumo similar a la semana anterior ({{ change_vs_last_week|default(1.2)|abs|round(1) }}% de variación).<br>
+                    Patrones de uso consistentes y predecibles.
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Comparación con Semana Anterior -->
+            <h3>🔄 Comparación Semanal</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Métrica</th>
+                        <th>Esta Semana</th>
+                        <th>Semana Anterior</th>
+                        <th>Cambio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="metric-name">Consumo Total</td>
+                        <td>{{ total_weekly_kwh|default(124.5)|round(1) }} kWh</td>
+                        <td>{{ last_week_kwh|default(128.6)|round(1) }} kWh</td>
+                        <td class="{% if change_vs_last_week|default(-3.2) < 0 %}change-positive{% else %}change-negative{% endif %}">
+                            {{ change_vs_last_week|default(-3.2)|round(1) }}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="metric-name">Promedio Diario</td>
+                        <td>{{ avg_daily_kwh|default(17.8)|round(1) }} kWh</td>
+                        <td>{{ last_week_avg_daily|default(18.4)|round(1) }} kWh</td>
+                        <td class="{% if (avg_daily_kwh|default(17.8) - last_week_avg_daily|default(18.4)) < 0 %}change-positive{% else %}change-negative{% endif %}">
+                            {{ ((avg_daily_kwh|default(17.8) - last_week_avg_daily|default(18.4)) / last_week_avg_daily|default(18.4) * 100)|round(1) }}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="metric-name">Pico Máximo</td>
+                        <td>{{ max_power_kw|default(3.245)|round(3) }} kW</td>
+                        <td>{{ last_week_max|default(3.187)|round(3) }} kW</td>
+                        <td class="{{ 'change-negative' if (max_power_kw|default(3.245) - last_week_max|default(3.187)) > 0 else 'change-positive' }}">
+                            {{ ((max_power_kw|default(3.245) - last_week_max|default(3.187)) / last_week_max|default(3.187) * 100)|round(1) }}%
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="metric-name">Anomalías</td>
+                        <td>{{ anomalies_count|default(2) }}</td>
+                        <td>{{ last_week_anomalies|default(5) }}</td>
+                        <td class="{{ 'change-positive' if (anomalies_count|default(2) - last_week_anomalies|default(5)) < 0 else 'change-negative' }}">
+                            {{ anomalies_count|default(2) - last_week_anomalies|default(5) }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <!-- Recomendaciones Semanales -->
+            <div class="recommendations">
+                <h3>💡 Recomendaciones para la Próxima Semana</h3>
+                {% if recommendations and recommendations|length > 0 %}
+                <ul>
+                    {% for recommendation in recommendations %}
+                    <li>{{ recommendation }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <ul>
+                    <li>🎯 El {{ worst_day|default("Sábado") }} tuvo el mayor consumo ({{ worst_day_kwh|default(21.3)|round(1) }} kWh). Analiza actividades de ese día para optimizar.</li>
+                    <li>💚 El {{ best_day|default("Miércoles") }} fue tu día más eficiente. Intenta replicar esos hábitos.</li>
+                    {% if change_vs_last_week|default(-3.2) > 5 %}
+                    <li>📊 El consumo aumentó {{ change_vs_last_week|default(5.5)|round(1) }}%. Identifica cambios recientes en equipos o rutinas.</li>
+                    {% elif change_vs_last_week|default(-3.2) < -5 %}
+                    <li>✅ ¡Excelente! Redujiste {{ change_vs_last_week|default(-3.2)|abs|round(1) }}% el consumo. Mantén estos hábitos.</li>
+                    {% endif %}
+                    <li>⏰ Considera programar electrodomésticos de alto consumo en horarios valle (23:00-07:00).</li>
+                    <li>🔍 Revisa el consumo en standby durante la noche para identificar ahorros adicionales.</li>
+                </ul>
+                {% endif %}
+            </div>
+            
+            <!-- CTA -->
+            <div class="cta-section">
+                <a href="#" class="button">📊 Ver Análisis Completo</a>
+            </div>
+            
+            <!-- Attachments -->
+            <div class="attachments">
+                <h4>📎 Archivos Adjuntos</h4>
+                <ul>
+                    <li>📄 Reporte semanal completo con gráficos (PDF)</li>
+                    <li>📈 Datos de consumo diario (CSV)</li>
+                    {% if anomalies_count|default(0) > 0 %}
+                    <li>⚠️ Resumen de {{ anomalies_count }} anomalías detectadas</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>DomusAI</strong> - Reporte Semanal Automático</p>
+            <p>Generado el {{ generation_date|default("28/10/2025 09:00") }}</p>
+            <p style="margin-top: 10px;">
+                <a href="#">⚙️ Configurar</a> •
+                <a href="#">📊 Dashboard</a> •
+                <a href="#">❓ Ayuda</a>
+            </p>
+            <p style="margin-top: 10px; color: #9ca3af;">
+                Próximo reporte: Lunes 04/11/2025 a las 09:00 AM
+            </p>
+        </div>
+    </div>
+</body>
+</html>
