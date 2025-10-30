@@ -67,20 +67,55 @@ class EnergyPredictor:
     - Ensemble: Combinación ponderada para máxima precisión
     
     Características DomusAI:
-    - Compatible con Dataset_clean_test.csv
+    - Compatible con Dataset_clean_test.csv y Railway MySQL
     - Predicciones escalables (24h, 7d, 30d)
     - Validación temporal robusta
     - Integración con pipeline de reportes
     """
     
-    def __init__(self, data_path: str = 'data/Dataset_clean_test.csv'):
+    def __init__(
+        self, 
+        data_source: str = 'railway',
+        csv_path: Optional[str] = None,
+        db_reader = None,
+        data_path: Optional[str] = None  # Deprecated, mantener para backward compatibility
+    ):
         """
         🔧 Inicializar predictor energético sin TensorFlow
         
         Args:
-            data_path: Ruta al dataset limpio de DomusAI
+            data_source: Origen de datos - 'railway' (recomendado) o 'csv' (legacy)
+            csv_path: Ruta al dataset CSV si data_source='csv'
+            db_reader: Instancia de RailwayDatabaseReader (opcional, se crea automáticamente)
+            data_path: DEPRECATED - usar csv_path en su lugar
+        
+        Example:
+            >>> # Railway (RECOMENDADO para producción)
+            >>> predictor = EnergyPredictor(data_source='railway')
+            >>> 
+            >>> # CSV legacy (para testing/desarrollo)
+            >>> predictor = EnergyPredictor(data_source='csv', csv_path='data/Dataset_clean_test.csv')
         """
-        self.data_path = data_path
+        # Backward compatibility: data_path → csv_path
+        if data_path is not None:
+            warnings.warn(
+                "Parámetro 'data_path' deprecated. Usar 'csv_path' y 'data_source' en su lugar.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            csv_path = data_path
+            data_source = 'csv'
+        
+        # Validar data_source
+        if data_source not in ['railway', 'csv']:
+            raise ValueError(f"data_source debe ser 'railway' o 'csv', recibido: {data_source}")
+        
+        # Configurar origen de datos
+        self.data_source = data_source
+        self.csv_path = csv_path
+        self.db_reader = db_reader  # Se inicializa lazy en _load_from_railway()
+        
+        # Estado del predictor
         self.df = None
         self.models = {}
         self.predictions = {}
@@ -91,34 +126,172 @@ class EnergyPredictor:
         # Setup logging
         self.logger = setup_prediction_logging()
         
-        print("🔮 EnergyPredictor DomusAI inicializado (Prophet + ARIMA + Enhanced Prophet)")
-        self.logger.info("EnergyPredictor inicializado exitosamente")
+        print(f"🔮 EnergyPredictor DomusAI inicializado (Prophet + ARIMA + Enhanced Prophet)")
+        print(f"   📊 Data source: {data_source.upper()}")
+        if data_source == 'csv':
+            print(f"   📂 CSV path: {csv_path}")
+        self.logger.info(f"EnergyPredictor inicializado - data_source={data_source}")
         
+    def _load_from_railway(self) -> pd.DataFrame:
+        """
+        🔄 Cargar datos desde Railway MySQL
+        
+        Carga datos en tiempo real desde la base de datos cloud Railway,
+        asegurando formato compatible con DomusAI.
+        
+        Returns:
+            DataFrame con datos de Railway en formato DomusAI
+            
+        Raises:
+            RuntimeError: Si Railway no está disponible o falla la conexión
+            ValueError: Si formato de datos no es válido
+        """
+        print("🔄 Cargando datos desde Railway MySQL...")
+        
+        try:
+            # Inicializar db_reader si no existe
+            if self.db_reader is None:
+                from src.database import get_db_reader
+                self.db_reader = get_db_reader()
+            
+            # Test de conexión
+            if not self.db_reader.test_connection():
+                raise RuntimeError("❌ Railway MySQL no disponible - verificar conexión")
+            
+            # Obtener todos los datos disponibles
+            df = self.db_reader.get_all_data()
+            
+            if df is None or len(df) == 0:
+                raise ValueError("❌ Railway devolvió DataFrame vacío - verificar datos")
+            
+            # Validar formato Railway → DomusAI
+            self._validate_railway_format(df)
+            
+            # Estadísticas de carga
+            print(f"✅ Datos Railway cargados: {len(df):,} registros")
+            print(f"📅 Rango temporal: {df.index.min()} a {df.index.max()}")
+            print(f"⏱️ Duración: {(df.index.max() - df.index.min()).days} días")
+            
+            self.logger.info(f"Datos Railway cargados exitosamente - {len(df):,} registros")
+            
+            return df
+            
+        except ImportError as e:
+            error_msg = f"❌ Módulo database.py no encontrado: {e}"
+            self.logger.error(error_msg)
+            raise RuntimeError(error_msg)
+        
+        except Exception as e:
+            error_msg = f"❌ Error cargando datos Railway: {e}"
+            self.logger.error(error_msg)
+            raise RuntimeError(error_msg)
+    
+    def _validate_railway_format(self, df: pd.DataFrame) -> None:
+        """
+        ✅ Validar que DataFrame de Railway cumple formato DomusAI
+        
+        Verifica:
+        - Índice DatetimeIndex
+        - Columnas requeridas presentes
+        - Tipos de datos correctos
+        - Rangos de valores energéticos válidos
+        
+        Args:
+            df: DataFrame a validar
+            
+        Raises:
+            ValueError: Si formato no es válido
+        """
+        # 1. Validar índice DatetimeIndex
+        if not isinstance(df.index, pd.DatetimeIndex):
+            raise ValueError("❌ Railway: Index debe ser DatetimeIndex")
+        
+        # 2. Validar columnas requeridas
+        required_cols = [
+            'Global_active_power',
+            'Global_reactive_power',
+            'Voltage',
+            'Global_intensity',
+            'Sub_metering_1',
+            'Sub_metering_2',
+            'Sub_metering_3'
+        ]
+        missing = [col for col in required_cols if col not in df.columns]
+        if missing:
+            raise ValueError(f"❌ Railway: Columnas faltantes: {missing}")
+        
+        # 3. Validar tipos de datos numéricos
+        for col in required_cols:
+            if not pd.api.types.is_numeric_dtype(df[col]):
+                raise ValueError(f"❌ Railway: Columna {col} debe ser numérica, es {df[col].dtype}")
+        
+        # 4. Validar rangos de valores energéticos
+        if (df['Global_active_power'] < 0).any():
+            raise ValueError("❌ Railway: Global_active_power contiene valores negativos")
+        
+        # Warnings para valores sospechosos (no bloquean)
+        voltage_mean = df['Voltage'].mean()
+        if not (200 <= voltage_mean <= 250):
+            self.logger.warning(f"⚠️ Voltage promedio fuera de rango estándar: {voltage_mean:.1f}V (esperado: 200-250V)")
+        
+        # 5. Validar resolución temporal
+        if len(df) > 1:
+            time_diffs = df.index.to_series().diff().dropna()
+            most_common_freq = time_diffs.mode()[0] if len(time_diffs) > 0 else None
+            if most_common_freq:
+                freq_seconds = most_common_freq.total_seconds()
+                if freq_seconds not in [30, 60, 3600]:  # 30s, 1min, 1hora
+                    self.logger.warning(f"⚠️ Frecuencia no estándar detectada: {freq_seconds}s")
+        
+        print("✅ Validación Railway → DomusAI: PASSED")
+    
     def load_and_prepare_data(self) -> pd.DataFrame:
         """
         🔄 Cargar y preparar dataset para modelado predictivo
         
-        Siguiendo convenciones DomusAI:
-        - Carga Dataset_clean_test.csv con índice datetime
-        - Verifica calidad temporal de datos (~260,640 registros)
-        - Prepara formatos específicos para cada modelo
+        Soporta múltiples orígenes de datos:
+        - Railway MySQL: Datos en tiempo real desde cloud (RECOMENDADO)
+        - CSV: Archivos locales para testing/desarrollo (LEGACY)
+        
+        Preparación automática:
+        - Verificación de calidad temporal (~260,640 registros esperados)
+        - Formato Prophet (ds, y) para modelos
+        - Validación de integridad de datos
         
         Returns:
             DataFrame preparado con índice temporal
+            
+        Raises:
+            ValueError: Si data_source inválido o datos corruptos
+            RuntimeError: Si Railway no disponible cuando data_source='railway'
         """
-        print("🔄 Cargando dataset limpio DomusAI...")
+        print(f"🔄 Cargando dataset desde {self.data_source.upper()}...")
         
         try:
-            # Cargar con índice datetime siguiendo patrón DomusAI
-            self.df = pd.read_csv(self.data_path, index_col=0, parse_dates=True)
+            # Cargar según origen configurado
+            if self.data_source == 'railway':
+                self.df = self._load_from_railway()
+                
+            elif self.data_source == 'csv':
+                if not self.csv_path:
+                    raise ValueError("❌ csv_path requerido cuando data_source='csv'")
+                
+                print(f"🔄 Cargando CSV legacy: {self.csv_path}")
+                
+                # Cargar CSV con índice datetime (patrón DomusAI original)
+                self.df = pd.read_csv(self.csv_path, index_col=0, parse_dates=True)
+                
+                print(f"✅ CSV cargado: {len(self.df):,} registros")
+                
+            else:
+                raise ValueError(f"❌ data_source inválido: {self.data_source}")
             
-            # Verificación de calidad siguiendo convenciones
+            # Verificación de calidad (común para ambos sources)
             if not isinstance(self.df.index, pd.DatetimeIndex):
                 print("⚠️ Convirtiendo índice a DatetimeIndex...")
                 self.df.index = pd.to_datetime(self.df.index, errors='coerce')
             
             # Estadísticas de carga con formato DomusAI
-            print(f"✅ Dataset cargado: {len(self.df):,} registros")
             print(f"📅 Rango temporal: {self.df.index.min()} a {self.df.index.max()}")
             print(f"⏱️ Duración: {(self.df.index.max() - self.df.index.min()).days} días")
             
@@ -131,7 +304,9 @@ class EnergyPredictor:
             return self.df
             
         except Exception as e:
-            print(f"❌ Error cargando dataset: {e}")
+            error_msg = f"❌ Error cargando dataset: {e}"
+            print(error_msg)
+            self.logger.error(error_msg)
             raise
     
     def _prepare_prophet_format(self):
@@ -481,6 +656,7 @@ class EnergyPredictor:
         # Guardar metadatos y métricas completos
         metadata = {
             'training_date': timestamp,
+            'data_source': self.data_source,
             'data_range': f"{self.df.index.min()} to {self.df.index.max()}",
             'data_points': len(self.df),
             'duration_days': (self.df.index.max() - self.df.index.min()).days,
@@ -488,8 +664,12 @@ class EnergyPredictor:
             'metrics': self.metrics,
             'ensemble_config': self.models.get('ensemble', {}),
             'file_paths': saved_files,
-            'version': '2.2_no_tensorflow',
-            'python_version': f"3.13 compatible"
+            'version': '2.2_railway_compatible',
+            'python_version': f"3.13 compatible",
+            'railway_info': {
+                'using_railway': self.data_source == 'railway',
+                'csv_path': self.csv_path if self.data_source == 'csv' else None
+            }
         }
         
         metadata_path = f"{models_dir}/model_metadata_{timestamp}.json"
@@ -1345,27 +1525,50 @@ class EnergyPredictor:
 # FUNCIONES DE UTILIDAD PARA USO EXTERNO
 # ============================================================================
 
-def quick_prediction(data_path: str = 'data/Dataset_clean_test.csv',
+def quick_prediction(data_source: str = 'railway',
+                    csv_path: Optional[str] = None,
                     horizon_days: int = 7,
                     model: str = 'prophet',
                     optimize: bool = False,
-                    with_confidence: bool = False) -> Dict:
+                    with_confidence: bool = False,
+                    data_path: Optional[str] = None) -> Dict:
     """
-    ⚡ Predicción rápida DomusAI con configuración por defecto
+    ⚡ Predicción rápida DomusAI con Railway MySQL por defecto
     
     Args:
-        data_path: Ruta al dataset limpio DomusAI
+        data_source: Origen de datos - 'railway' (recomendado) | 'csv' (legacy)
+        csv_path: Ruta al dataset CSV si data_source='csv'
         horizon_days: Días a predecir (1, 7, 30)
         model: Modelo a usar ('prophet', 'arima', 'ensemble')
         optimize: Si optimizar hiperparámetros con Optuna
         with_confidence: Si incluir intervalos de confianza
+        data_path: DEPRECATED - usar csv_path
         
     Returns:
         Diccionario con predicciones siguiendo convenciones DomusAI
+        
+    Example:
+        >>> # Railway (RECOMENDADO)
+        >>> result = quick_prediction(data_source='railway', horizon_days=7)
+        >>> 
+        >>> # CSV legacy
+        >>> result = quick_prediction(data_source='csv', 
+        ...                          csv_path='data/Dataset_clean_test.csv',
+        ...                          horizon_days=7)
     """
-    print("⚡ Iniciando predicción rápida DomusAI (Versión Completa)...")
+    # Backward compatibility
+    if data_path is not None:
+        warnings.warn(
+            "Parámetro 'data_path' deprecated. Usar 'csv_path' y 'data_source'.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        csv_path = data_path
+        data_source = 'csv'
     
-    predictor = EnergyPredictor(data_path)
+    print("⚡ Iniciando predicción rápida DomusAI (Railway compatible)...")
+    
+    predictor = EnergyPredictor(data_source=data_source, csv_path=csv_path)
     predictor.load_and_prepare_data()
     
     if model == 'prophet':
@@ -1412,31 +1615,56 @@ def quick_prediction(data_path: str = 'data/Dataset_clean_test.csv',
     
     return result
 
-def advanced_prediction_pipeline(data_path: str = 'data/Dataset_clean_test.csv',
+def advanced_prediction_pipeline(data_source: str = 'railway',
+                                csv_path: Optional[str] = None,
                                 horizon_days: int = 30,
-                                full_optimization: bool = True) -> Dict:
+                                full_optimization: bool = True,
+                                data_path: Optional[str] = None) -> Dict:
     """
-    🚀 Pipeline completo de predicción DomusAI con todas las funcionalidades
+    🚀 Pipeline completo de predicción DomusAI con Railway MySQL
     
     Incluye:
     - Optimización automática de hiperparámetros
     - Validación temporal robusta
-    - Ensemble dinámico adaptativos
+    - Ensemble dinámico adaptativo
     - Intervalos de confianza
     - Logging completo
     
     Args:
-        data_path: Ruta al dataset limpio
+        data_source: Origen de datos - 'railway' (recomendado) | 'csv' (legacy)
+        csv_path: Ruta al dataset CSV si data_source='csv'
         horizon_days: Días a predecir (recomendado 7-30)
         full_optimization: Si ejecutar optimización completa
+        data_path: DEPRECATED - usar csv_path
         
     Returns:
         Diccionario con resultados completos y análisis
+        
+    Example:
+        >>> # Railway (RECOMENDADO)
+        >>> results = advanced_prediction_pipeline(data_source='railway', horizon_days=30)
+        >>> 
+        >>> # CSV legacy
+        >>> results = advanced_prediction_pipeline(
+        ...     data_source='csv',
+        ...     csv_path='data/Dataset_clean_test.csv',
+        ...     horizon_days=30
+        ... )
     """
-    print("🚀 Iniciando Pipeline Avanzado DomusAI...")
+    # Backward compatibility
+    if data_path is not None:
+        warnings.warn(
+            "Parámetro 'data_path' deprecated. Usar 'csv_path' y 'data_source'.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        csv_path = data_path
+        data_source = 'csv'
+    
+    print("🚀 Iniciando Pipeline Avanzado DomusAI (Railway compatible)...")
     print("=" * 60)
     
-    predictor = EnergyPredictor(data_path)
+    predictor = EnergyPredictor(data_source=data_source, csv_path=csv_path)
     predictor.load_and_prepare_data()
     
     # 1. Optimización de hiperparámetros
@@ -1502,13 +1730,28 @@ def advanced_prediction_pipeline(data_path: str = 'data/Dataset_clean_test.csv',
     return complete_results
 
 if __name__ == "__main__":
-    # 🧪 Test completo del sistema DomusAI - Versión Completa
-    print("🧪 Probando EnergyPredictor DomusAI (Versión Completa)...")
+    # 🧪 Test completo del sistema DomusAI - Railway Compatible
+    print("🧪 Probando EnergyPredictor DomusAI (Railway + CSV compatible)...")
+    
+    # Detectar data source disponible
+    try:
+        from src.database import get_db_reader
+        db = get_db_reader()
+        if db.test_connection():
+            print("✅ Railway MySQL disponible - usando datos en tiempo real")
+            test_data_source = 'railway'
+            test_csv_path = None
+        else:
+            raise RuntimeError("Railway no disponible")
+    except Exception as e:
+        print(f"⚠️ Railway no disponible ({e}) - usando CSV legacy")
+        test_data_source = 'csv'
+        test_csv_path = 'data/Dataset_clean_test.csv'
     
     try:
         # Test 1: Carga de datos
-        print("\n1️⃣ Test de carga de datos...")
-        predictor = EnergyPredictor()
+        print(f"\n1️⃣ Test de carga de datos ({test_data_source.upper()})...")
+        predictor = EnergyPredictor(data_source=test_data_source, csv_path=test_csv_path)
         df = predictor.load_and_prepare_data()
         print(f"✅ Test carga exitoso - Dataset: {len(df):,} registros")
         
@@ -1539,14 +1782,24 @@ if __name__ == "__main__":
         
         # Test 6: Predicción rápida mejorada
         print("\n6️⃣ Test de predicción rápida mejorada...")
-        quick_result = quick_prediction(horizon_days=2, model='prophet', optimize=False, with_confidence=True)
+        quick_result = quick_prediction(
+            data_source=test_data_source,
+            csv_path=test_csv_path,
+            horizon_days=2,
+            model='prophet',
+            optimize=False,
+            with_confidence=True
+        )
         print(f"✅ Quick prediction OK - {quick_result['data_points']} puntos generados")
         print(f"📊 Consumo promedio: {quick_result['statistics']['mean_consumption']:.3f} kW")
         
         print("\n" + "="*60)
         print("🚀 TODOS LOS TESTS DOMUSAI COMPLETADOS EXITOSAMENTE")
-        print("📈 EnergyPredictor VERSIÓN COMPLETA (100%) FUNCIONAL")
+        print(f"📈 EnergyPredictor RAILWAY COMPATIBLE (100%) FUNCIONAL")
+        print(f"📊 Data source usado: {test_data_source.upper()}")
         print("🎯 Funcionalidades disponibles:")
+        print("   ✅ Railway MySQL (datos en tiempo real)")
+        print("   ✅ CSV legacy (backward compatibility)")
         print("   ✅ Optimización automática de hiperparámetros")
         print("   ✅ Validación temporal walk-forward")
         print("   ✅ Ensemble dinámico adaptativo")
