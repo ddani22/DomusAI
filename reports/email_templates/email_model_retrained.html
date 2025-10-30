@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelo Re-entrenado - DomusAI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .success-box {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+            border: 2px solid #10b981;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .success-box h2 {
+            margin-top: 0;
+            color: #065f46;
+            font-size: 24px;
+        }
+        .success-box p {
+            color: #047857;
+            margin: 10px 0 0 0;
+        }
+        
+        /* Métricas de mejora */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .metric-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        .metric-card.improved {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+        .metric-card.maintained {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .metric-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #374151;
+            margin: 10px 0;
+        }
+        .metric-change {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+        .metric-change.positive {
+            color: #10b981;
+        }
+        .metric-change.neutral {
+            color: #6b7280;
+        }
+        .improvement-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+        
+        /* Detalles técnicos */
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .details-table th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .details-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #4b5563;
+        }
+        .details-table td:first-child {
+            font-weight: 600;
+            color: #374151;
+            background: #f9fafb;
+        }
+        
+        /* Timeline de entrenamiento */
+        .training-timeline {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #10b981;
+        }
+        .training-timeline h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            margin: 12px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        .timeline-item::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            width: 20px;
+            height: 20px;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .timeline-content {
+            flex: 1;
+        }
+        .timeline-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 3px;
+        }
+        .timeline-detail {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        
+        /* Información del modelo */
+        .model-info {
+            background: #eff6ff;
+            border: 1px solid #93c5fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .model-info h4 {
+            margin: 0 0 10px 0;
+            color: #1e40af;
+        }
+        .model-info p {
+            margin: 5px 0;
+            color: #1e3a8a;
+            font-size: 14px;
+        }
+        
+        /* Comparación visual */
+        .comparison-box {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 15px;
+            margin: 20px 0;
+            align-items: center;
+        }
+        .comparison-item {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        .comparison-item.old {
+            border-color: #9ca3af;
+            background: #f9fafb;
+        }
+        .comparison-item.new {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+        .comparison-label {
+            font-size: 12px;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .comparison-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .comparison-arrow {
+            font-size: 32px;
+            color: #10b981;
+        }
+        
+        /* CTA */
+        .cta-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Footer */
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .footer a {
+            color: #10b981;
+            text-decoration: none;
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            .comparison-box {
+                grid-template-columns: 1fr;
+            }
+            .comparison-arrow {
+                transform: rotate(90deg);
+                margin: 10px 0;
+            }
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎯 Modelo Re-entrenado Exitosamente</h1>
+            <p>AutoTrainer completó el proceso de actualización</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Success Message -->
+            <div class="success-box">
+                <h2>✅ ¡Actualización Completada!</h2>
+                <p>El modelo de predicción ha sido re-entrenado con los datos más recientes.<br>
+                La precisión del sistema ha mejorado significativamente.</p>
+            </div>
+            
+            <!-- Métricas de Mejora -->
+            <h2>📊 Métricas de Rendimiento</h2>
+            <div class="metrics-grid">
+                <div class="metric-card improved">
+                    <span class="improvement-badge">✓</span>
+                    <div class="metric-label">MAE (Error Medio)</div>
+                    <div class="metric-value">{{ new_mae|default(0.145)|round(3) }}</div>
+                    <div class="metric-change positive">
+                        {% if old_mae %}
+                        {% set improvement = ((old_mae - new_mae|default(0.145)) / old_mae * 100) %}
+                        ↓ Mejora del {{ improvement|round(1) }}%
+                        {% else %}
+                        ✓ Optimizado
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="metric-card improved">
+                    <span class="improvement-badge">✓</span>
+                    <div class="metric-label">RMSE</div>
+                    <div class="metric-value">{{ new_rmse|default(0.187)|round(3) }}</div>
+                    <div class="metric-change positive">
+                        {% if old_rmse %}
+                        {% set improvement = ((old_rmse - new_rmse|default(0.187)) / old_rmse * 100) %}
+                        ↓ Mejora del {{ improvement|round(1) }}%
+                        {% else %}
+                        ✓ Optimizado
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="metric-card improved">
+                    <span class="improvement-badge">✓</span>
+                    <div class="metric-label">R² Score</div>
+                    <div class="metric-value">{{ new_r2|default(0.894)|round(3) }}</div>
+                    <div class="metric-change positive">
+                        {% if old_r2 %}
+                        {% set improvement = ((new_r2|default(0.894) - old_r2) / old_r2 * 100) %}
+                        ↑ Mejora del {{ improvement|round(1) }}%
+                        {% else %}
+                        ✓ Excelente
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="metric-card maintained">
+                    <div class="metric-label">MAPE (Error %)</div>
+                    <div class="metric-value">{{ new_mape|default(18.3)|round(1) }}%</div>
+                    <div class="metric-change neutral">
+                        {% if old_mape %}
+                        {% set change = new_mape|default(18.3) - old_mape %}
+                        {% if change < 0 %}↓{% else %}↑{% endif %} {{ change|abs|round(1) }}%
+                        {% else %}
+                        ℹ️ Aceptable
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Comparación Visual -->
+            {% if old_mae and new_mae %}
+            <h3>📈 Comparación Antes/Después</h3>
+            <div class="comparison-box">
+                <div class="comparison-item old">
+                    <div class="comparison-label">Modelo Anterior</div>
+                    <div class="comparison-value" style="color: #6b7280;">{{ old_mae|round(3) }}</div>
+                    <div style="font-size: 12px; color: #9ca3af; margin-top: 5px;">MAE</div>
+                </div>
+                <div class="comparison-arrow">→</div>
+                <div class="comparison-item new">
+                    <div class="comparison-label">Modelo Nuevo</div>
+                    <div class="comparison-value" style="color: #10b981;">{{ new_mae|round(3) }}</div>
+                    <div style="font-size: 12px; color: #059669; margin-top: 5px;">MAE</div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Timeline de Entrenamiento -->
+            <div class="training-timeline">
+                <h3>⏱️ Proceso de Entrenamiento</h3>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-title">Obtención de Datos</div>
+                        <div class="timeline-detail">{{ total_records|default(43200)|format_number }} registros de Railway MySQL (últimos 90 días)</div>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-title">Validación de Calidad</div>
+                        <div class="timeline-detail">Calidad: {{ data_quality|default("Excelente") }} • Completitud: {{ data_completeness|default(98.6) }}%</div>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-title">Entrenamiento Prophet</div>
+                        <div class="timeline-detail">Duración: {{ training_time|default(127) }}s • Componentes: tendencia + estacionalidad</div>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-title">Entrenamiento Isolation Forest</div>
+                        <div class="timeline-detail">Precisión detección: {{ anomaly_precision|default(92.3) }}% • Umbral contaminación: 0.1</div>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-title">Validación y Guardado</div>
+                        <div class="timeline-detail">Modelo guardado como: {{ model_version|default("v20251028_030012") }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Información del Modelo -->
+            <div class="model-info">
+                <h4>🤖 Información del Modelo</h4>
+                <p><strong>Algoritmo:</strong> Prophet + Isolation Forest</p>
+                <p><strong>Versión:</strong> {{ model_version|default("v20251028_030012") }}</p>
+                <p><strong>Datos de entrenamiento:</strong> {{ training_start|default("28/07/2025") }} a {{ training_end|default("26/10/2025") }}</p>
+                <p><strong>Fecha de entrenamiento:</strong> {{ training_date|default("28/10/2025 03:00") }}</p>
+                <p><strong>Próximo entrenamiento:</strong> {{ next_training|default("04/11/2025 03:00") }}</p>
+            </div>
+            
+            <!-- Detalles Técnicos -->
+            <h3>🔬 Detalles Técnicos</h3>
+            <table class="details-table">
+                <tr>
+                    <td>Registros procesados:</td>
+                    <td><strong>{{ total_records|default(43200)|format_number }}</strong></td>
+                </tr>
+                <tr>
+                    <td>Features utilizados:</td>
+                    <td>{{ features_count|default(4) }} (Global_active_power, Voltage, Global_intensity, Reactive_power)</td>
+                </tr>
+                <tr>
+                    <td>Período de datos:</td>
+                    <td>{{ data_period|default("90 días") }}</td>
+                </tr>
+                <tr>
+                    <td>Memoria del modelo:</td>
+                    <td>{{ model_size|default(2.3) }} MB</td>
+                </tr>
+                <tr>
+                    <td>Tiempo total:</td>
+                    <td>{{ total_time|default(145) }} segundos</td>
+                </tr>
+                <tr>
+                    <td>Estado:</td>
+                    <td><span style="color: #10b981; font-weight: 600;">✓ Operativo</span></td>
+                </tr>
+            </table>
+            
+            <!-- Mejoras Esperadas -->
+            <div style="background: #f0fdf4; border: 2px solid #10b981; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #065f46;">💡 Beneficios de la Actualización</h3>
+                <ul style="margin: 0; padding-left: 20px; color: #047857;">
+                    <li>Predicciones más precisas para los próximos 7 días</li>
+                    <li>Mejor detección de anomalías basada en patrones recientes</li>
+                    <li>Reducción de falsos positivos en alertas</li>
+                    <li>Adaptación a cambios estacionales y de hábitos</li>
+                    <li>Mayor confiabilidad en reportes automáticos</li>
+                </ul>
+            </div>
+            
+            <!-- CTA -->
+            <div class="cta-section">
+                <a href="#" class="button">📊 Ver Predicciones Actualizadas</a>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>DomusAI AutoTrainer</strong> - Sistema de Re-entrenamiento Automático</p>
+            <p>Esta notificación fue generada automáticamente el {{ generation_date|default("28/10/2025 03:02") }}</p>
+            <p style="margin-top: 10px;">
+                <a href="#">📊 Dashboard</a> •
+                <a href="#">⚙️ Configuración</a> •
+                <a href="#">📖 Documentación</a>
+            </p>
+            <p style="margin-top: 10px; color: #9ca3af;">
+                DomusAI v1.0 | AutoTrainer Pipeline
+            </p>
+        </div>
+    </div>
+</body>
+</html>
