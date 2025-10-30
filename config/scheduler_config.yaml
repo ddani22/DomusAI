@@ -1,0 +1,278 @@
+# ============================================================================
+# DomusAI - Configuración del Scheduler 24/7
+# ============================================================================
+#
+# Este archivo permite configurar el sistema de scheduling sin modificar código.
+# Todos los parámetros pueden ser sobreescritos con variables de entorno.
+#
+# Variables de entorno disponibles:
+#   DOMUSAI_TIMEZONE              - Zona horaria (ej: Europe/Madrid)
+#   DOMUSAI_ANOMALY_ENABLED       - true/false para detección de anomalías
+#   DOMUSAI_ANOMALY_INTERVAL      - Minutos entre detecciones (ej: 60)
+#   DOMUSAI_RETRAINING_ENABLED    - true/false para re-entrenamiento
+#   DOMUSAI_RETRAINING_MIN_DAYS   - Días mínimos entre entrenamientos (ej: 7)
+#   DOMUSAI_EMAIL_ENABLED         - true/false para notificaciones por email
+#
+# ============================================================================
+
+# ============================================================================
+# CONFIGURACIÓN GENERAL
+# ============================================================================
+general:
+  # Zona horaria para los horarios del scheduler
+  # Opciones comunes: Europe/Madrid, America/New_York, UTC
+  timezone: "Europe/Madrid"
+  
+  # Directorio para logs
+  log_dir: "logs"
+  
+  # Nivel de logging (DEBUG, INFO, WARNING, ERROR)
+  log_level: "INFO"
+  
+  # Formato de fecha en logs
+  date_format: "%Y-%m-%d %H:%M:%S"
+
+# ============================================================================
+# CONFIGURACIÓN DE JOBS
+# ============================================================================
+jobs:
+  # --------------------------------------------------------------------------
+  # JOB 1: Detección de Anomalías
+  # --------------------------------------------------------------------------
+  anomaly_detection:
+    # Habilitar/deshabilitar este job
+    enabled: true
+    
+    # Intervalo en minutos entre ejecuciones
+    # Valores recomendados: 15, 30, 60 (1 hora), 120 (2 horas)
+    interval_minutes: 60
+    
+    # Número mínimo de lecturas requeridas para detección confiable
+    min_readings: 30
+    
+    # Severidad mínima para enviar email (LOW, MEDIUM, HIGH)
+    # LOW: 1-2 anomalías, potencia < 5 kW
+    # MEDIUM: 3-5 anomalías, potencia 5-8 kW
+    # HIGH: >5 anomalías o potencia > 8 kW
+    email_min_severity: "MEDIUM"
+    
+    # Criterios de severidad
+    severity_criteria:
+      high:
+        min_anomalies: 6      # Más de 5 anomalías
+        max_power_kw: 8.0     # O potencia > 8 kW
+      medium:
+        min_anomalies: 3      # 3-5 anomalías
+        max_power_kw: 5.0     # O potencia > 5 kW
+      # LOW: todo lo demás
+  
+  # --------------------------------------------------------------------------
+  # JOB 2: Re-entrenamiento de Modelos
+  # --------------------------------------------------------------------------
+  model_retraining:
+    # Habilitar/deshabilitar este job
+    enabled: true
+    
+    # Horario de ejecución (cron format)
+    # Formato: "minuto hora dia mes dia_semana"
+    # Ejemplos:
+    #   "0 3 * * *"    - 3:00 AM todos los días
+    #   "30 2 * * 0"   - 2:30 AM cada domingo
+    #   "0 4 1 * *"    - 4:00 AM el día 1 de cada mes
+    cron: "0 3 * * *"
+    
+    # Días mínimos entre re-entrenamientos
+    # Si el último entrenamiento fue hace menos días, se salta
+    min_days_between: 7
+    
+    # Ventana de datos para entrenamiento (días)
+    training_window_days: 90
+    
+    # Número mínimo de registros en Railway para entrenar
+    # 30 días × 1440 lecturas/día = 43,200
+    min_records: 43200
+    
+    # Enviar email al completar entrenamiento
+    notify_on_success: true
+    notify_on_failure: true
+  
+  # --------------------------------------------------------------------------
+  # JOB 3: Reporte Diario
+  # --------------------------------------------------------------------------
+  daily_report:
+    # Habilitar/deshabilitar este job
+    enabled: true
+    
+    # Horario de ejecución (cron format)
+    cron: "0 8 * * *"  # 8:00 AM todos los días
+    
+    # Incluir en el reporte
+    include_anomalies: true
+    include_predictions: true
+    include_statistics: true
+    
+    # Formato del reporte (html, pdf)
+    format: "html"
+  
+  # --------------------------------------------------------------------------
+  # JOB 4: Reporte Semanal
+  # --------------------------------------------------------------------------
+  weekly_report:
+    # Habilitar/deshabilitar este job
+    enabled: true
+    
+    # Horario de ejecución (cron format)
+    # "0 9 * * 1" = 9:00 AM cada lunes
+    cron: "0 9 * * 1"
+    
+    # Incluir comparación con semana anterior
+    include_comparison: true
+    
+    # Formato del reporte
+    format: "html"
+  
+  # --------------------------------------------------------------------------
+  # JOB 5: Reporte Mensual
+  # --------------------------------------------------------------------------
+  monthly_report:
+    # Habilitar/deshabilitar este job
+    enabled: true
+    
+    # Horario de ejecución (cron format)
+    # "0 10 1 * *" = 10:00 AM el día 1 de cada mes
+    cron: "0 10 1 * *"
+    
+    # Incluir análisis de tendencias
+    include_trends: true
+    
+    # Incluir comparación con mes anterior
+    include_comparison: true
+    
+    # Formato del reporte
+    format: "html"
+
+# ============================================================================
+# CONFIGURACIÓN DE NOTIFICACIONES
+# ============================================================================
+notifications:
+  # Habilitar/deshabilitar notificaciones por email
+  enabled: true
+  
+  # Enviar email cuando un job se ejecuta exitosamente
+  email_on_success: false
+  
+  # Enviar email cuando un job falla
+  email_on_error: true
+  
+  # Destinatarios por defecto (lista)
+  default_recipients:
+    - "enriquesl1102@gmail.com"
+    - "ddanimc2602@gmail.com"
+  
+  # Asunto de emails de anomalías
+  anomaly_subject_template: "⚠️ Anomalías detectadas - DomusAI [{severity}]"
+  
+  # Asunto de emails de re-entrenamiento
+  retraining_success_subject: "✅ Modelo re-entrenado exitosamente - DomusAI"
+  retraining_failure_subject: "❌ Error en re-entrenamiento - DomusAI"
+  
+  # Configuración SMTP (se lee de .env por seguridad)
+  # Las credenciales SMTP NO deben estar aquí, usa .env:
+  #   SMTP_HOST=smtp.gmail.com
+  #   SMTP_PORT=587
+  #   SMTP_USER=tu_email@gmail.com
+  #   SMTP_PASSWORD=tu_contraseña
+  #   SMTP_FROM_EMAIL=domusai@ejemplo.com
+  #   SMTP_FROM_NAME=DomusAI System
+
+# ============================================================================
+# CONFIGURACIÓN DE REINTENTOS Y ERROR HANDLING
+# ============================================================================
+error_handling:
+  # Número máximo de reintentos si un job falla
+  max_retries: 3
+  
+  # Tiempo de espera entre reintentos (segundos)
+  # Usa backoff exponencial: 60, 120, 240 segundos
+  retry_delays:
+    - 60      # 1 minuto
+    - 300     # 5 minutos
+    - 900     # 15 minutos
+  
+  # Enviar alerta crítica si fallan todos los reintentos
+  alert_on_max_retries: true
+  
+  # Circuit breaker: si Railway falla N veces seguidas, pausar jobs
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5       # Fallos consecutivos antes de abrir circuito
+    timeout_seconds: 300       # Tiempo antes de reintentar (5 minutos)
+    half_open_retries: 1       # Reintentos en estado half-open
+
+# ============================================================================
+# CONFIGURACIÓN DE RAILWAY MYSQL
+# ============================================================================
+database:
+  # Connection pool settings
+  pool_size: 5
+  pool_timeout: 30
+  
+  # Query timeout (segundos)
+  query_timeout: 60
+  
+  # Reintentar conexión si falla
+  retry_on_connection_error: true
+  max_connection_retries: 3
+
+# ============================================================================
+# CONFIGURACIÓN DE MODELOS ML
+# ============================================================================
+models:
+  # Directorio de modelos
+  models_dir: "models"
+  
+  # Número máximo de versiones a mantener
+  max_versions: 10
+  
+  # Backups de modelos
+  backup_dir: "models/backups"
+  
+  # Modelo de anomalías
+  anomaly_model_name: "best_isolation_forest.pkl"
+  
+  # Modelo de predicción
+  prediction_model_name: "best_prophet.pkl"
+
+# ============================================================================
+# CONFIGURACIÓN DE PERFORMANCE
+# ============================================================================
+performance:
+  # Liberar memoria después de entrenar modelos
+  gc_after_training: true
+  
+  # Límite de memoria para jobs (MB) - warning si se excede
+  memory_limit_mb: 1000
+  
+  # Timeout máximo por job (segundos)
+  job_timeout:
+    anomaly_detection: 300      # 5 minutos
+    model_retraining: 1800      # 30 minutos
+    daily_report: 600           # 10 minutos
+    weekly_report: 900          # 15 minutos
+    monthly_report: 1200        # 20 minutos
+
+# ============================================================================
+# CONFIGURACIÓN DE DESARROLLO/DEBUG
+# ============================================================================
+development:
+  # Modo debug (más logging, sin enviar emails reales)
+  debug_mode: false
+  
+  # Usar datos de prueba en lugar de Railway
+  use_test_data: false
+  
+  # Ejecutar jobs inmediatamente al iniciar (para testing)
+  run_jobs_on_startup: false
+  
+  # Intervalo reducido para testing (minutos)
+  test_interval_minutes: 5
