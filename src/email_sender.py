@@ -15,6 +15,7 @@ Fecha: Octubre 2025
 
 import smtplib
 import os
+import traceback
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -118,6 +119,16 @@ class EmailReporter:
         self.jinja_env = Environment(
             loader=FileSystemLoader(str(self.templates_dir))
         )
+        
+        # Agregar filtros personalizados
+        def format_number(value):
+            """Formatear número con comas (ej: 1000 → 1,000)"""
+            try:
+                return f"{int(value):,}"
+            except:
+                return str(value)
+        
+        self.jinja_env.filters['format_number'] = format_number
         
         logger.info("📧 EmailReporter inicializado")
         logger.info(f"   SMTP: {self.smtp_host}:{self.smtp_port}")
@@ -421,7 +432,6 @@ class EmailReporter:
         
         except Exception as e:
             logger.error(f"❌ Error en send_monthly_report: {e}")
-            import traceback
             logger.debug(traceback.format_exc())
             return False
 
@@ -610,7 +620,436 @@ class EmailReporter:
         
         except Exception as e:
             logger.error(f"❌ Error en send_anomaly_alert: {e}")
-            import traceback
+            logger.debug(traceback.format_exc())
+            return False
+
+
+    def send_daily_report(
+        self,
+        recipients: List[str],
+        report_date: datetime,
+        daily_stats: Dict,
+        hourly_data: Optional[List[Dict]] = None,
+        insights: Optional[List[str]] = None,
+        pdf_path: Optional[str] = None
+    ) -> bool:
+        """
+        ☀️ Enviar reporte diario de consumo.
+        
+        Args:
+            recipients: Lista de emails destino
+            report_date: Fecha del reporte
+            daily_stats: Diccionario con estadísticas diarias:
+                - total_consumption: float (kWh del día)
+                - today_vs_avg: float (% comparado con promedio)
+                - peak_hour: str (hora de mayor consumo)
+                - yesterday_consumption: float (kWh de ayer)
+                - total_records: int (registros procesados)
+            hourly_data: Lista de consumo por hora [{'hour': '08:00', 'consumption': 0.8}, ...]
+            insights: Lista de recomendaciones personalizadas
+            pdf_path: Ruta opcional del PDF del reporte
+            
+        Returns:
+            True si se envió correctamente
+            
+        Example:
+            >>> emailer = EmailReporter()
+            >>> emailer.send_daily_report(
+            ...     recipients=['usuario@example.com'],
+            ...     report_date=datetime(2025, 10, 28),
+            ...     daily_stats={
+            ...         'total_consumption': 18.5,
+            ...         'today_vs_avg': 104.2,
+            ...         'peak_hour': '19:00',
+            ...         'yesterday_consumption': 17.8,
+            ...         'total_records': 1440
+            ...     },
+            ...     insights=['Consumo ligeramente alto en horario nocturno']
+            ... )
+        """
+        try:
+            logger.info(f"☀️ Enviando reporte diario {report_date.strftime('%Y-%m-%d')}")
+            
+            # Preparar datos para template
+            template_data = {
+                # Información básica
+                'report_date': report_date.strftime('%d/%m/%Y'),
+                'report_day_name': report_date.strftime('%A'),
+                'generation_date': datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                
+                # Estadísticas principales
+                'total_consumption': daily_stats.get('total_consumption', 0.0),
+                'today_vs_avg': daily_stats.get('today_vs_avg', 100.0),
+                'peak_hour': daily_stats.get('peak_hour', 'N/A'),
+                'yesterday_consumption': daily_stats.get('yesterday_consumption', 0.0),
+                'total_records': daily_stats.get('total_records', 0),
+                
+                # Datos horarios
+                'hourly_data': hourly_data or [],
+                
+                # Recomendaciones personalizadas
+                'insights': insights or [
+                    'Tu consumo del día está dentro de rangos normales',
+                    'Considera usar electrodomésticos en horarios valle (23:00-07:00)',
+                    'Revisa el consumo en standby durante la noche'
+                ]
+            }
+            
+            # Cargar y renderizar template
+            try:
+                template = self.jinja_env.get_template('email_daily_report.html')
+                html_body = template.render(**template_data)
+                logger.debug(f"✅ Template diario renderizado: {len(html_body):,} caracteres")
+            except Exception as e:
+                logger.error(f"❌ Error renderizando template diario: {e}")
+                raise ValueError(f"Error en template email_daily_report.html: {e}")
+            
+            # Preparar adjuntos
+            attachments = []
+            if pdf_path:
+                pdf_path_obj = Path(pdf_path)
+                if pdf_path_obj.exists():
+                    attachments.append(str(pdf_path_obj))
+                    logger.debug(f"📎 PDF adjunto: {pdf_path_obj.name}")
+            
+            # Crear asunto
+            subject = f"☀️ Reporte Diario DomusAI - {report_date.strftime('%d/%m/%Y')}"
+            
+            # Log de información
+            logger.info(f"   Consumo: {daily_stats.get('total_consumption', 0):.1f} kWh")
+            logger.info(f"   vs Promedio: {daily_stats.get('today_vs_avg', 100):+.1f}%")
+            logger.info(f"   Pico: {daily_stats.get('peak_hour', 'N/A')}")
+            
+            # Enviar email
+            success = self.send_email(
+                recipients=recipients,
+                subject=subject,
+                html_body=html_body,
+                attachments=attachments
+            )
+            
+            if success:
+                logger.info(f"✅ Reporte diario {report_date.strftime('%Y-%m-%d')} enviado")
+            else:
+                logger.error(f"❌ Error enviando reporte diario")
+            
+            return success
+        
+        except Exception as e:
+            logger.error(f"❌ Error en send_daily_report: {e}")
+            logger.debug(traceback.format_exc())
+            return False
+
+
+    def send_weekly_report(
+        self,
+        recipients: List[str],
+        week_start: datetime,
+        week_end: datetime,
+        weekly_stats: Dict,
+        daily_consumption: Optional[List[float]] = None,
+        recommendations: Optional[List[str]] = None,
+        pdf_path: Optional[str] = None
+    ) -> bool:
+        """
+        📅 Enviar reporte semanal de consumo.
+        
+        Args:
+            recipients: Lista de emails destino
+            week_start: Fecha inicio de la semana
+            week_end: Fecha fin de la semana
+            weekly_stats: Diccionario con estadísticas semanales:
+                - total_weekly_kwh: float (consumo total de la semana)
+                - avg_daily_kwh: float (promedio diario)
+                - change_vs_last_week: float (% cambio vs semana anterior)
+                - efficiency_score: int (0-100)
+                - best_day: str (mejor día)
+                - best_day_kwh: float
+                - worst_day: str (peor día)
+                - worst_day_kwh: float
+                - max_power_kw: float (pico de potencia)
+                - anomalies_count: int
+                - total_records: int
+            daily_consumption: Lista de 7 valores [Lun, Mar, Mié, Jue, Vie, Sáb, Dom]
+            recommendations: Lista de recomendaciones personalizadas
+            pdf_path: Ruta opcional del PDF
+            
+        Returns:
+            True si se envió correctamente
+            
+        Example:
+            >>> emailer = EmailReporter()
+            >>> emailer.send_weekly_report(
+            ...     recipients=['usuario@example.com'],
+            ...     week_start=datetime(2025, 10, 21),
+            ...     week_end=datetime(2025, 10, 27),
+            ...     weekly_stats={
+            ...         'total_weekly_kwh': 124.5,
+            ...         'avg_daily_kwh': 17.8,
+            ...         'change_vs_last_week': -3.2,
+            ...         'efficiency_score': 87,
+            ...         'best_day': 'Miércoles',
+            ...         'best_day_kwh': 15.2,
+            ...         'worst_day': 'Sábado',
+            ...         'worst_day_kwh': 21.3
+            ...     },
+            ...     daily_consumption=[18.2, 16.9, 15.2, 17.5, 18.8, 21.3, 16.6]
+            ... )
+        """
+        try:
+            logger.info(f"📅 Enviando reporte semanal {week_start.strftime('%Y-%m-%d')} - {week_end.strftime('%Y-%m-%d')}")
+            
+            # Preparar datos para template
+            template_data = {
+                # Información básica
+                'week_start': week_start.strftime('%d %b'),
+                'week_end': week_end.strftime('%d %b, %Y'),
+                'week_start_full': week_start.strftime('%d/%m/%Y'),
+                'week_end_full': week_end.strftime('%d/%m/%Y'),
+                'generation_date': datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                
+                # Estadísticas semanales
+                'total_weekly_kwh': weekly_stats.get('total_weekly_kwh', 0.0),
+                'avg_daily_kwh': weekly_stats.get('avg_daily_kwh', 0.0),
+                'change_vs_last_week': weekly_stats.get('change_vs_last_week', 0.0),
+                'efficiency_score': weekly_stats.get('efficiency_score', 0),
+                'avg_power_kw': weekly_stats.get('avg_power_kw', 0.0),
+                'max_power_kw': weekly_stats.get('max_power_kw', 0.0),
+                'anomalies_count': weekly_stats.get('anomalies_count', 0),
+                'total_records': weekly_stats.get('total_records', 0),
+                
+                # Mejor y peor día
+                'best_day': weekly_stats.get('best_day', 'N/A'),
+                'best_day_kwh': weekly_stats.get('best_day_kwh', 0.0),
+                'worst_day': weekly_stats.get('worst_day', 'N/A'),
+                'worst_day_kwh': weekly_stats.get('worst_day_kwh', 0.0),
+                
+                # Consumo diario (7 días)
+                'daily_consumption': daily_consumption or [0.0] * 7,
+                
+                # Comparación con semana anterior
+                'last_week_kwh': weekly_stats.get('last_week_kwh', 0.0),
+                'last_week_avg_daily': weekly_stats.get('last_week_avg_daily', 0.0),
+                'last_week_max': weekly_stats.get('last_week_max', 0.0),
+                'last_week_anomalies': weekly_stats.get('last_week_anomalies', 0),
+                
+                # Recomendaciones personalizadas
+                'recommendations': recommendations or [
+                    f"El {weekly_stats.get('worst_day', 'Sábado')} tuvo el mayor consumo. Analiza actividades de ese día.",
+                    f"El {weekly_stats.get('best_day', 'Miércoles')} fue tu día más eficiente. Intenta replicar esos hábitos.",
+                    'Considera programar electrodomésticos en horarios valle (23:00-07:00)',
+                    'Revisa el consumo en standby durante la noche'
+                ]
+            }
+            
+            # Cargar y renderizar template
+            try:
+                template = self.jinja_env.get_template('email_weekly_report.html')
+                html_body = template.render(**template_data)
+                logger.debug(f"✅ Template semanal renderizado: {len(html_body):,} caracteres")
+            except Exception as e:
+                logger.error(f"❌ Error renderizando template semanal: {e}")
+                raise ValueError(f"Error en template email_weekly_report.html: {e}")
+            
+            # Preparar adjuntos
+            attachments = []
+            if pdf_path:
+                pdf_path_obj = Path(pdf_path)
+                if pdf_path_obj.exists():
+                    attachments.append(str(pdf_path_obj))
+                    logger.debug(f"📎 PDF adjunto: {pdf_path_obj.name}")
+            
+            # Crear asunto
+            subject = f"📅 Reporte Semanal DomusAI - {week_start.strftime('%d/%m')} - {week_end.strftime('%d/%m/%Y')}"
+            
+            # Log de información
+            logger.info(f"   Consumo: {weekly_stats.get('total_weekly_kwh', 0):.1f} kWh")
+            logger.info(f"   Promedio diario: {weekly_stats.get('avg_daily_kwh', 0):.1f} kWh")
+            logger.info(f"   Cambio: {weekly_stats.get('change_vs_last_week', 0):+.1f}%")
+            
+            # Enviar email
+            success = self.send_email(
+                recipients=recipients,
+                subject=subject,
+                html_body=html_body,
+                attachments=attachments
+            )
+            
+            if success:
+                logger.info(f"✅ Reporte semanal enviado exitosamente")
+            else:
+                logger.error(f"❌ Error enviando reporte semanal")
+            
+            return success
+        
+        except Exception as e:
+            logger.error(f"❌ Error en send_weekly_report: {e}")
+            logger.debug(traceback.format_exc())
+            return False
+
+
+    def send_model_retrained_notification(
+        self,
+        recipients: List[str],
+        training_data: Dict,
+        old_metrics: Dict,
+        new_metrics: Dict,
+        improvements: Optional[Dict[str, float]] = None
+    ) -> bool:
+        """
+        🎯 Enviar notificación de modelo re-entrenado.
+        
+        Args:
+            recipients: Lista de emails destino
+            training_data: Diccionario con información del entrenamiento:
+                - training_date: datetime
+                - model_name: str
+                - algorithm: str (ej: 'LSTM', 'Prophet', 'SARIMA')
+                - dataset_size: int (número de samples)
+                - training_duration_seconds: int
+                - features_used: List[str]
+                - data_quality: str (ej: 'Excelente', 'Buena')
+            old_metrics: Diccionario con métricas del modelo anterior:
+                - mae: float
+                - rmse: float
+                - r2: float
+                - mape: float
+                - training_time: int (segundos)
+            new_metrics: Diccionario con métricas del nuevo modelo (misma estructura)
+            improvements: Diccionario opcional con % de mejora {'mae': -12.5, 'rmse': -8.3, ...}
+            
+        Returns:
+            True si se envió correctamente
+            
+        Example:
+            >>> emailer = EmailReporter()
+            >>> emailer.send_model_retrained_notification(
+            ...     recipients=['admin@example.com'],
+            ...     training_data={
+            ...         'training_date': datetime.now(),
+            ...         'model_name': 'LSTM_v2.1',
+            ...         'algorithm': 'LSTM',
+            ...         'dataset_size': 50000,
+            ...         'training_duration_seconds': 3600,
+            ...         'features_used': ['hour', 'day_of_week', 'month'],
+            ...         'data_quality': 'Excelente'
+            ...     },
+            ...     old_metrics={'mae': 0.145, 'rmse': 0.234, 'r2': 0.89, 'mape': 12.5},
+            ...     new_metrics={'mae': 0.127, 'rmse': 0.215, 'r2': 0.92, 'mape': 10.8}
+            ... )
+        """
+        try:
+            logger.info(f"🎯 Enviando notificación de modelo re-entrenado")
+            
+            # Calcular mejoras si no se proporcionaron
+            if improvements is None:
+                improvements = {}
+                for metric in ['mae', 'rmse', 'r2', 'mape']:
+                    if metric in old_metrics and metric in new_metrics:
+                        old_val = old_metrics[metric]
+                        new_val = new_metrics[metric]
+                        
+                        # Para R², mayor es mejor; para otros, menor es mejor
+                        if metric == 'r2':
+                            improvement = ((new_val - old_val) / old_val) * 100 if old_val != 0 else 0
+                        else:
+                            improvement = ((old_val - new_val) / old_val) * 100 if old_val != 0 else 0
+                        
+                        improvements[metric] = improvement
+            
+            # Formatear duración
+            duration_secs = training_data.get('training_duration_seconds', 0)
+            if duration_secs < 60:
+                duration_str = f"{duration_secs} segundos"
+            elif duration_secs < 3600:
+                duration_str = f"{duration_secs // 60} minutos"
+            else:
+                hours = duration_secs // 3600
+                minutes = (duration_secs % 3600) // 60
+                duration_str = f"{hours}h {minutes}m"
+            
+            # Preparar datos para template
+            template_data = {
+                # Información básica
+                'training_date': training_data.get('training_date', datetime.now()).strftime('%d/%m/%Y %H:%M:%S'),
+                'model_name': training_data.get('model_name', 'Modelo Predictor'),
+                'generation_date': datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                
+                # Detalles del entrenamiento
+                'algorithm': training_data.get('algorithm', 'LSTM'),
+                'dataset_size': training_data.get('dataset_size', 0),
+                'training_duration': duration_str,
+                'training_duration_seconds': duration_secs,
+                'features_used': ', '.join(training_data.get('features_used', [])),
+                'data_quality': training_data.get('data_quality', 'Buena'),
+                
+                # Métricas antiguas
+                'old_metrics': {
+                    'mae': old_metrics.get('mae', 0.0),
+                    'rmse': old_metrics.get('rmse', 0.0),
+                    'r2': old_metrics.get('r2', 0.0),
+                    'mape': old_metrics.get('mape', 0.0),
+                    'training_time': old_metrics.get('training_time', 0)
+                },
+                
+                # Métricas nuevas
+                'new_metrics': {
+                    'mae': new_metrics.get('mae', 0.0),
+                    'rmse': new_metrics.get('rmse', 0.0),
+                    'r2': new_metrics.get('r2', 0.0),
+                    'mape': new_metrics.get('mape', 0.0),
+                    'training_time': duration_secs
+                },
+                
+                # Mejoras
+                'improvement_percent': improvements,
+                
+                # Determinar si hay regresión
+                'has_regression': any(imp < -5 for imp in improvements.values()),
+                'has_significant_improvement': any(imp > 10 for imp in improvements.values())
+            }
+            
+            # Cargar y renderizar template
+            try:
+                template = self.jinja_env.get_template('email_model_retrained.html')
+                html_body = template.render(**template_data)
+                logger.debug(f"✅ Template de modelo re-entrenado renderizado: {len(html_body):,} caracteres")
+            except Exception as e:
+                logger.error(f"❌ Error renderizando template modelo: {e}")
+                raise ValueError(f"Error en template email_model_retrained.html: {e}")
+            
+            # Crear asunto
+            improvement_avg = sum(improvements.values()) / len(improvements) if improvements else 0
+            if improvement_avg > 10:
+                subject = "🎯 ¡Modelo Mejorado! - Re-entrenamiento Completado con Éxito"
+            elif improvement_avg > 0:
+                subject = "✅ Modelo Re-entrenado - DomusAI"
+            else:
+                subject = "ℹ️ Modelo Re-entrenado - Revisar Métricas"
+            
+            # Log de información
+            logger.info(f"   Modelo: {training_data.get('model_name', 'N/A')}")
+            logger.info(f"   Duración: {duration_str}")
+            logger.info(f"   Mejora promedio: {improvement_avg:+.1f}%")
+            logger.info(f"   MAE: {old_metrics.get('mae', 0):.4f} → {new_metrics.get('mae', 0):.4f}")
+            
+            # Enviar email
+            success = self.send_email(
+                recipients=recipients,
+                subject=subject,
+                html_body=html_body,
+                attachments=[]
+            )
+            
+            if success:
+                logger.info(f"✅ Notificación de modelo re-entrenado enviada exitosamente")
+            else:
+                logger.error(f"❌ Error enviando notificación de modelo")
+            
+            return success
+        
+        except Exception as e:
+            logger.error(f"❌ Error en send_model_retrained_notification: {e}")
             logger.debug(traceback.format_exc())
             return False
 
