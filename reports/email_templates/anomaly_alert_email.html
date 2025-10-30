@@ -360,7 +360,7 @@
                 <h3>📋 Anomalías Relacionadas ({{ anomalies|length }} total)</h3>
                 {% for anomaly in anomalies[:5] %}
                 <div class="anomaly-item {{ anomaly.severity|default('critical') }}">
-                    <div class="anomaly-timestamp">{{ anomaly.timestamp.strftime('%d/%m/%Y %H:%M') if anomaly.timestamp else 'N/A' }}</div>
+                    <div class="anomaly-timestamp">{{ anomaly.timestamp if anomaly.timestamp else 'N/A' }}</div>
                     <div class="anomaly-value">{{ anomaly.value|default('N/A') }} kW</div>
                     <div class="anomaly-type">{{ anomaly.type|default('Tipo no especificado') }}</div>
                 </div>
