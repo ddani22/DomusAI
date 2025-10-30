@@ -20,13 +20,26 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import traceback
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 from pathlib import Path
 import json
 import logging
 import os
+
+# Importar sistema de database Railway
+try:
+    from database import RailwayDatabaseReader, get_db_reader
+    DATABASE_AVAILABLE = True
+except ImportError:
+    try:
+        from .database import RailwayDatabaseReader, get_db_reader
+        DATABASE_AVAILABLE = True
+    except ImportError:
+        DATABASE_AVAILABLE = False
+        logging.warning("⚠️ RailwayDatabaseReader no disponible - usando CSV fallback")
 
 # Importar sistema de email
 try:
@@ -119,7 +132,8 @@ class ReportGenerator:
     
     def generate_monthly_report(
         self,
-        data: pd.DataFrame,
+        data: Optional[pd.DataFrame] = None,
+        db_reader: Optional[RailwayDatabaseReader] = None,
         predictions: Optional[Dict] = None,
         anomalies: Optional[Dict] = None,
         month: Optional[int] = None,
@@ -128,8 +142,11 @@ class ReportGenerator:
         """
         🎯 FUNCIÓN PRINCIPAL - Generar reporte mensual completo.
         
+        VERSIÓN 2.0 - Soporta Railway MySQL y CSV fallback
+        
         Args:
-            data: DataFrame con datos históricos de consumo
+            data: DataFrame con datos históricos (opcional si db_reader está presente)
+            db_reader: Instancia de RailwayDatabaseReader para datos en vivo
             predictions: Dict con predicciones de predictor.predict()
             anomalies: Dict con anomalías de anomalies.detect()
             month: Mes del reporte (default: mes actual)
@@ -143,7 +160,8 @@ class ReportGenerator:
                     'charts': Dict[str, str],
                     'summary': Dict,
                     'status': str,
-                    'generation_time': float
+                    'generation_time': float,
+                    'data_source': 'railway' | 'dataframe'
                 }
         """
         start_time = datetime.now()
@@ -155,6 +173,55 @@ class ReportGenerator:
             year = year or now.year
         
         logger.info(f"📊 Generando reporte para {month}/{year}")
+        
+        # Obtener datos desde Railway o DataFrame
+        if db_reader is not None:
+            logger.info("   📡 Obteniendo datos desde Railway MySQL...")
+            try:
+                # Calcular rango de fechas del mes
+                start_date = datetime(year, month, 1)
+                if month == 12:
+                    end_date = datetime(year + 1, 1, 1) - timedelta(seconds=1)
+                else:
+                    end_date = datetime(year, month + 1, 1) - timedelta(seconds=1)
+                
+                data = db_reader.get_data_by_date_range(
+                    start_date=start_date,
+                    end_date=end_date
+                )
+                
+                if data is None or len(data) == 0:
+                    logger.warning(f"   ⚠️ No hay datos en Railway para {month}/{year}")
+                    return {
+                        'status': 'error',
+                        'error': f'No hay datos disponibles para {month}/{year}',
+                        'generation_time': (datetime.now() - start_time).total_seconds()
+                    }
+                
+                data_source = 'railway'
+                logger.info(f"   ✅ {len(data):,} registros obtenidos desde Railway")
+                
+            except Exception as e:
+                logger.error(f"   ❌ Error obteniendo datos de Railway: {e}")
+                return {
+                    'status': 'error',
+                    'error': f'Error de base de datos: {str(e)}',
+                    'generation_time': (datetime.now() - start_time).total_seconds()
+                }
+        
+        elif data is not None:
+            logger.info("   📂 Usando DataFrame proporcionado...")
+            data_source = 'dataframe'
+        
+        else:
+            logger.error("   ❌ No se proporcionó data ni db_reader")
+            return {
+                'status': 'error',
+                'error': 'Debe proporcionar data (DataFrame) o db_reader (RailwayDatabaseReader)',
+                'generation_time': (datetime.now() - start_time).total_seconds()
+            }
+        
+        logger.info(f"   📊 Data source: {data_source}")
         
         try:
             # 1. Calcular resumen ejecutivo
@@ -210,16 +277,17 @@ class ReportGenerator:
                 'charts': charts,
                 'summary': summary,
                 'status': 'success',
-                'generation_time': generation_time
+                'generation_time': generation_time,
+                'data_source': data_source
             }
             
             logger.info(f"🎉 Reporte completado en {generation_time:.2f}s")
+            logger.info(f"   📡 Fuente de datos: {data_source}")
             
             return result
             
         except Exception as e:
             logger.error(f"❌ Error generando reporte: {e}")
-            import traceback
             traceback.print_exc()
             
             return {
@@ -229,6 +297,343 @@ class ReportGenerator:
             }
     
     
+    def generate_daily_report(
+        self,
+        db_reader: Optional[RailwayDatabaseReader] = None,
+        data: Optional[pd.DataFrame] = None,
+        predictions: Optional[Dict] = None,
+        anomalies: Optional[Dict] = None
+    ) -> Dict:
+        """
+        📅 Generar reporte DIARIO (últimas 24 horas).
+        
+        NUEVO SPRINT 8 - Integración Railway MySQL
+        
+        Args:
+            db_reader: Instancia de RailwayDatabaseReader (PREFERIDO)
+            data: DataFrame con datos (fallback si no hay db_reader)
+            predictions: Dict con predicciones (opcional)
+            anomalies: Dict con anomalías (opcional)
+            
+        Returns:
+            Dict con resultado de generación:
+                - html_path: Ruta al HTML generado
+                - charts: Dict con rutas de gráficos
+                - summary: Estadísticas del día
+                - status: 'success' | 'error'
+                - data_source: 'railway' | 'dataframe'
+                - generation_time: Tiempo en segundos
+        """
+        start_time = datetime.now()
+        logger.info("📅 Generando reporte diario (últimas 24 horas)")
+        
+        # Obtener datos
+        if db_reader is not None:
+            logger.info("   📡 Obteniendo últimas 24 horas desde Railway...")
+            try:
+                data = db_reader.get_recent_readings(hours=24)
+                
+                if data is None or len(data) == 0:
+                    logger.warning("   ⚠️ No hay datos recientes en Railway")
+                    return {
+                        'status': 'error',
+                        'error': 'No hay datos disponibles para las últimas 24 horas',
+                        'generation_time': (datetime.now() - start_time).total_seconds()
+                    }
+                
+                data_source = 'railway'
+                logger.info(f"   ✅ {len(data):,} registros obtenidos")
+                
+            except Exception as e:
+                logger.error(f"   ❌ Error obteniendo datos: {e}")
+                return {
+                    'status': 'error',
+                    'error': f'Error de base de datos: {str(e)}',
+                    'generation_time': (datetime.now() - start_time).total_seconds()
+                }
+        
+        elif data is not None:
+            logger.info("   📂 Usando DataFrame proporcionado")
+            # Filtrar últimas 24 horas
+            cutoff = datetime.now() - timedelta(hours=24)
+            data = data[data.index >= cutoff]
+            data_source = 'dataframe'
+        
+        else:
+            logger.error("   ❌ No se proporcionó db_reader ni data")
+            return {
+                'status': 'error',
+                'error': 'Debe proporcionar db_reader o data',
+                'generation_time': (datetime.now() - start_time).total_seconds()
+            }
+        
+        # Calcular estadísticas del día
+        summary = {
+            'period': 'Últimas 24 horas',
+            'total_records': len(data),
+            'avg_consumption': float(data['Global_active_power'].mean()),
+            'max_consumption': float(data['Global_active_power'].max()),
+            'min_consumption': float(data['Global_active_power'].min()),
+            'total_kwh': float(data['Global_active_power'].sum() / 60),  # Convertir a kWh
+            'data_source': data_source
+        }
+        
+        # Generar gráfico horario
+        charts = {}
+        try:
+            chart_path = self._plot_hourly_consumption(data)
+            charts['hourly_consumption'] = chart_path
+            logger.info("   ✅ Gráfico horario generado")
+        except Exception as e:
+            logger.warning(f"   ⚠️ Error generando gráfico: {e}")
+        
+        # Renderizar HTML simple
+        template_data = {
+            'report_month': 'Últimas 24h',
+            'report_year': datetime.now().year,
+            'report_type': 'Diario',
+            'report_date': datetime.now().strftime('%d/%m/%Y %H:%M'),
+            'report_id': f"RPT-DAILY-{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            'summary': summary,
+            'charts': charts,
+            'predictions': predictions,
+            'anomalies': anomalies,
+            'stats': {},
+            'recommendations': []
+        }
+        
+        # Guardar HTML
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        html_filename = f"reporte_diario_{timestamp}.html"
+        html_path = self.output_dir / html_filename
+        
+        try:
+            html_content = self.render_html_report(template_data)
+            with open(html_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            logger.info(f"✅ Reporte diario generado: {html_path}")
+        except Exception as e:
+            logger.error(f"❌ Error guardando HTML: {e}")
+            return {
+                'status': 'error',
+                'error': f'Error guardando HTML: {str(e)}',
+                'generation_time': (datetime.now() - start_time).total_seconds()
+            }
+        
+        generation_time = (datetime.now() - start_time).total_seconds()
+        
+        return {
+            'status': 'success',
+            'html_path': str(html_path),
+            'charts': charts,
+            'summary': summary,
+            'data_source': data_source,
+            'generation_time': generation_time
+        }
+    
+    
+    def generate_weekly_report(
+        self,
+        db_reader: Optional[RailwayDatabaseReader] = None,
+        data: Optional[pd.DataFrame] = None,
+        predictions: Optional[Dict] = None,
+        anomalies: Optional[Dict] = None
+    ) -> Dict:
+        """
+        📆 Generar reporte SEMANAL (últimos 7 días).
+        
+        NUEVO SPRINT 8 - Integración Railway MySQL
+        
+        Args:
+            db_reader: Instancia de RailwayDatabaseReader (PREFERIDO)
+            data: DataFrame con datos (fallback si no hay db_reader)
+            predictions: Dict con predicciones (opcional)
+            anomalies: Dict con anomalías (opcional)
+            
+        Returns:
+            Dict con resultado de generación:
+                - html_path: Ruta al HTML generado
+                - charts: Dict con rutas de gráficos
+                - summary: Estadísticas de la semana
+                - status: 'success' | 'error'
+                - data_source: 'railway' | 'dataframe'
+                - generation_time: Tiempo en segundos
+        """
+        start_time = datetime.now()
+        logger.info("📆 Generando reporte semanal (últimos 7 días)")
+        
+        # Obtener datos
+        if db_reader is not None:
+            logger.info("   📡 Obteniendo últimos 7 días desde Railway...")
+            try:
+                # get_recent_readings solo acepta hours, convertir 7 días a 168 horas
+                data = db_reader.get_recent_readings(hours=24*7)
+                
+                if data is None or len(data) == 0:
+                    logger.warning("   ⚠️ No hay datos recientes en Railway")
+                    return {
+                        'status': 'error',
+                        'error': 'No hay datos disponibles para los últimos 7 días',
+                        'generation_time': (datetime.now() - start_time).total_seconds()
+                    }
+                
+                data_source = 'railway'
+                logger.info(f"   ✅ {len(data):,} registros obtenidos")
+                
+            except Exception as e:
+                logger.error(f"   ❌ Error obteniendo datos: {e}")
+                return {
+                    'status': 'error',
+                    'error': f'Error de base de datos: {str(e)}',
+                    'generation_time': (datetime.now() - start_time).total_seconds()
+                }
+        
+        elif data is not None:
+            logger.info("   📂 Usando DataFrame proporcionado")
+            # Filtrar últimos 7 días
+            cutoff = datetime.now() - timedelta(days=7)
+            data = data[data.index >= cutoff]
+            data_source = 'dataframe'
+        
+        else:
+            logger.error("   ❌ No se proporcionó db_reader ni data")
+            return {
+                'status': 'error',
+                'error': 'Debe proporcionar db_reader o data',
+                'generation_time': (datetime.now() - start_time).total_seconds()
+            }
+        
+        # Calcular estadísticas de la semana
+        daily_consumption = data['Global_active_power'].resample('D').sum() / 60  # kWh por día
+        
+        summary = {
+            'period': 'Últimos 7 días',
+            'total_records': len(data),
+            'avg_daily_kwh': float(daily_consumption.mean()),
+            'max_daily_kwh': float(daily_consumption.max()),
+            'min_daily_kwh': float(daily_consumption.min()),
+            'total_weekly_kwh': float(daily_consumption.sum()),
+            'avg_power_kw': float(data['Global_active_power'].mean()),
+            'data_source': data_source
+        }
+        
+        # Generar gráfico diario
+        charts = {}
+        try:
+            chart_path = self._plot_daily_consumption(
+                data, 
+                month=datetime.now().month,
+                year=datetime.now().year
+            )
+            charts['daily_consumption'] = chart_path
+            logger.info("   ✅ Gráfico diario generado")
+        except Exception as e:
+            logger.warning(f"   ⚠️ Error generando gráfico: {e}")
+        
+        # Renderizar HTML
+        template_data = {
+            'report_month': 'Últimos 7 días',
+            'report_year': datetime.now().year,
+            'report_type': 'Semanal',
+            'report_date': datetime.now().strftime('%d/%m/%Y %H:%M'),
+            'report_id': f"RPT-WEEKLY-{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            'summary': summary,
+            'charts': charts,
+            'predictions': predictions,
+            'anomalies': anomalies,
+            'stats': {},
+            'recommendations': []
+        }
+        
+        # Guardar HTML
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        html_filename = f"reporte_semanal_{timestamp}.html"
+        html_path = self.output_dir / html_filename
+        
+        try:
+            html_content = self.render_html_report(template_data)
+            with open(html_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            logger.info(f"✅ Reporte semanal generado: {html_path}")
+        except Exception as e:
+            logger.error(f"❌ Error guardando HTML: {e}")
+            return {
+                'status': 'error',
+                'error': f'Error guardando HTML: {str(e)}',
+                'generation_time': (datetime.now() - start_time).total_seconds()
+            }
+        
+        generation_time = (datetime.now() - start_time).total_seconds()
+        
+        return {
+            'status': 'success',
+            'html_path': str(html_path),
+            'charts': charts,
+            'summary': summary,
+            'data_source': data_source,
+            'generation_time': generation_time
+        }
+    
+    
+    def _plot_hourly_consumption(self, data: pd.DataFrame) -> str:
+        """
+        Generar gráfico de consumo por hora (últimas 24 horas).
+        
+        Args:
+            data: DataFrame con datos de las últimas 24 horas
+            
+        Returns:
+            Ruta del gráfico generado
+        """
+        fig, ax = plt.subplots(figsize=(14, 6))
+        
+        # Resample a horario
+        hourly = data['Global_active_power'].resample('h').mean()
+        
+        # Plot principal
+        ax.plot(hourly.index, hourly.to_numpy(),
+                linewidth=3, color='#667eea',
+                marker='o', markersize=6,
+                label='Consumo Horario')
+        
+        # Línea de promedio
+        mean_val = hourly.mean()
+        ax.axhline(y=mean_val, color='#95a5a6',
+                   linestyle=':', linewidth=2,
+                   label=f'Promedio: {mean_val:.3f} kW')
+        
+        # Marcar horas pico (>P75)
+        p75 = hourly.quantile(0.75)
+        peak_hours = hourly[hourly > p75]
+        if len(peak_hours) > 0:
+            ax.scatter(peak_hours.index, peak_hours.to_numpy(),
+                       color='#e74c3c', s=120, marker='o',
+                       label='Horas Pico (>P75)', zorder=5)
+        
+        # Configuración
+        ax.set_title('Consumo Energético por Hora - Últimas 24 Horas',
+                     fontsize=16, fontweight='bold', pad=20)
+        ax.set_xlabel('Hora', fontsize=12, fontweight='600')
+        ax.set_ylabel('Potencia (kW)', fontsize=12, fontweight='600')
+        ax.legend(loc='upper right', framealpha=0.9)
+        ax.grid(True, alpha=0.3, linestyle='--')
+        
+        # Rotar etiquetas
+        plt.xticks(rotation=45, ha='right')
+        
+        plt.tight_layout()
+        
+        # Guardar
+        filename = f"hourly_consumption_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        filepath = self.output_dir / filename
+        plt.savefig(filepath, dpi=300, bbox_inches='tight', facecolor='white')
+        plt.close()
+        
+        return str(filepath)
+    
+
     def create_executive_summary(
         self,
         data: pd.DataFrame,
@@ -715,9 +1120,10 @@ class ReportGenerator:
     
     def generate_monthly_report_with_pdf(
         self,
-        data: pd.DataFrame,
-        month: int,
-        year: int,
+        data: Optional[pd.DataFrame] = None,
+        db_reader: Optional[RailwayDatabaseReader] = None,
+        month: Optional[int] = None,
+        year: Optional[int] = None,
         format: str = 'both',
         predictions: Optional[Dict] = None,
         anomalies: Optional[Dict] = None
@@ -725,11 +1131,14 @@ class ReportGenerator:
         """
         🚀 Generar reporte mensual en formato HTML y/o PDF.
         
+        VERSIÓN 2.0 - Soporta Railway MySQL y CSV fallback
+        
         Esta función extiende generate_monthly_report() para soportar
         exportación directa a PDF además de HTML.
         
         Args:
-            data: DataFrame con datos de consumo
+            data: DataFrame con datos de consumo (opcional si db_reader presente)
+            db_reader: Instancia de RailwayDatabaseReader (opcional si data presente)
             month: Mes del reporte (1-12)
             year: Año del reporte (ej: 2007, 2025)
             format: Formato de salida:
@@ -747,25 +1156,31 @@ class ReportGenerator:
                 - change_percent: Cambio vs mes anterior
                 - efficiency_score: Score de eficiencia
                 - generation_time: Tiempo de generación
+                - data_source: 'railway' | 'dataframe'
                 
         Example:
-            >>> import pandas as pd
-            >>> df = pd.read_csv('data/Dataset_clean_test.csv', 
-            ...                  parse_dates=['Datetime'], index_col='Datetime')
             >>> generator = ReportGenerator()
             
-            >>> # Generar ambos formatos
+            >>> # Desde Railway (RECOMENDADO)
+            >>> db_reader = get_db_reader()
             >>> result = generator.generate_monthly_report_with_pdf(
-            ...     df, 6, 2007, format='both'
+            ...     db_reader=db_reader,
+            ...     month=6,
+            ...     year=2007,
+            ...     format='both'
             ... )
             >>> print(f"HTML: {result['html_path']}")
             >>> print(f"PDF: {result['pdf_path']}")
             
-            >>> # Solo PDF
+            >>> # Desde DataFrame (fallback)
+            >>> df = pd.read_csv('data/Dataset_clean_test.csv', 
+            ...                  parse_dates=['Datetime'], index_col='Datetime')
             >>> result = generator.generate_monthly_report_with_pdf(
-            ...     df, 6, 2007, format='pdf'
+            ...     data=df,
+            ...     month=6,
+            ...     year=2007,
+            ...     format='both'
             ... )
-            >>> print(f"PDF: {result['pdf_path']}")
         """
         start_time = datetime.now()
         
@@ -774,24 +1189,40 @@ class ReportGenerator:
         if format not in valid_formats:
             raise ValueError(f"Formato inválido: {format}. Use: {valid_formats}")
         
+        # Validar que al menos data o db_reader estén presentes
+        if data is None and db_reader is None:
+            raise ValueError("Debe proporcionar 'data' (DataFrame) o 'db_reader' (RailwayDatabaseReader)")
+        
+        # Determinar período si no se especifica
+        if month is None or year is None:
+            now = datetime.now()
+            month = month or now.month
+            year = year or now.year
+        
         logger.info(f"📊 Generando reporte en formato: {format}")
         
         # Generar HTML primero (siempre necesario)
         html_result = self.generate_monthly_report(
             data=data,
+            db_reader=db_reader,
             predictions=predictions,
             anomalies=anomalies,
             month=month,
             year=year
         )
         
+        # Verificar si hubo error
+        if html_result.get('status') == 'error':
+            return html_result
+        
         result = {
             'html_path': html_result['html_path'] if format != 'pdf' else None,
             'pdf_path': None,
-            'consumption_kwh': html_result.get('summary', {}).get('consumption_kwh', 0),
+            'consumption_kwh': html_result.get('summary', {}).get('total_consumption', 0),
             'change_percent': html_result.get('summary', {}).get('change_pct', 0),
             'efficiency_score': html_result.get('summary', {}).get('efficiency_score', 0),
             'charts': html_result.get('charts', {}),
+            'data_source': html_result.get('data_source', 'unknown'),
             'generation_time': 0
         }
         
@@ -872,19 +1303,23 @@ class ReportGenerator:
 # ============================================================================
 
 def generate_quick_report(
-    data_path: str,
+    data_path: Optional[str] = None,
     month: Optional[int] = None,
     year: Optional[int] = None,
-    format: str = 'html'
+    format: str = 'html',
+    use_railway: bool = True
 ) -> Dict:
     """
     ⚡ Generación rápida de reporte para scripts.
     
+    VERSIÓN 2.0 - Soporta Railway MySQL y CSV fallback
+    
     Args:
-        data_path: Ruta al archivo CSV con datos limpios
+        data_path: Ruta al archivo CSV (opcional si use_railway=True)
         month: Mes del reporte (default: mes actual)
         year: Año del reporte (default: año actual)
         format: Formato de salida: 'html', 'pdf', o 'both'
+        use_railway: Si usar Railway MySQL (default: True)
         
     Returns:
         Dict con resultado de la generación:
@@ -894,37 +1329,103 @@ def generate_quick_report(
             - change_percent: Cambio vs mes anterior
             - efficiency_score: Score de eficiencia
             - generation_time: Tiempo total
+            - data_source: 'railway' | 'csv'
         
     Example:
         >>> from src.reporting import generate_quick_report
         
-        >>> # Solo HTML (default)
-        >>> report = generate_quick_report('data/Dataset_clean_test.csv')
+        >>> # Usar Railway (RECOMENDADO)
+        >>> report = generate_quick_report(month=6, year=2007)
         >>> print(f"HTML: {report['html_path']}")
         
-        >>> # HTML + PDF
+        >>> # Fallback a CSV
         >>> report = generate_quick_report(
         ...     'data/Dataset_clean_test.csv',
+        ...     use_railway=False
+        ... )
+        
+        >>> # HTML + PDF desde Railway
+        >>> report = generate_quick_report(
         ...     month=6,
         ...     year=2007,
         ...     format='both'
         ... )
-        >>> print(f"HTML: {report['html_path']}")
-        >>> print(f"PDF: {report['pdf_path']}")
-        
-        >>> # Solo PDF
-        >>> report = generate_quick_report(
-        ...     'data/Dataset_clean_test.csv',
-        ...     format='pdf'
-        ... )
         >>> print(f"PDF: {report['pdf_path']}")
     """
-    # Cargar datos
-    logger.info(f"📂 Cargando datos desde {data_path}")
-    df = pd.read_csv(data_path, parse_dates=['Datetime'], index_col='Datetime')
+    # Determinar período si no se especifica
+    if month is None or year is None:
+        now = datetime.now()
+        month = month or now.month
+        year = year or now.year
     
-    # Generar reporte
+    logger.info(f"📊 Generación rápida de reporte {month}/{year}")
+    logger.info(f"   Fuente: {'Railway MySQL' if use_railway else 'CSV'}")
+    
     generator = ReportGenerator()
+    
+    # Intentar usar Railway primero
+    if use_railway and DATABASE_AVAILABLE:
+        try:
+            logger.info("   📡 Conectando a Railway MySQL...")
+            db_reader = get_db_reader()
+            
+            if format == 'html':
+                # Solo HTML
+                report = generator.generate_monthly_report(
+                    db_reader=db_reader,
+                    predictions=None,
+                    anomalies=None,
+                    month=month,
+                    year=year
+                )
+            else:
+                # HTML y/o PDF
+                report = generator.generate_monthly_report_with_pdf(
+                    data=None,
+                    db_reader=db_reader,
+                    month=month,
+                    year=year,
+                    format=format,
+                    predictions=None,
+                    anomalies=None
+                )
+            
+            if report.get('status') == 'success':
+                logger.info("   ✅ Reporte generado desde Railway")
+                return report
+            else:
+                logger.warning(f"   ⚠️ Error con Railway: {report.get('error')}")
+                if data_path is None:
+                    return report  # No hay fallback disponible
+                logger.info("   🔄 Intentando fallback a CSV...")
+        
+        except Exception as e:
+            logger.warning(f"   ⚠️ Error conectando a Railway: {e}")
+            if data_path is None:
+                return {
+                    'status': 'error',
+                    'error': f'Error de Railway sin CSV fallback: {str(e)}',
+                    'generation_time': 0
+                }
+            logger.info("   🔄 Usando CSV fallback...")
+    
+    # Fallback a CSV
+    if data_path is None:
+        return {
+            'status': 'error',
+            'error': 'No se proporcionó data_path y Railway no está disponible',
+            'generation_time': 0
+        }
+    
+    logger.info(f"📂 Cargando datos desde {data_path}")
+    try:
+        df = pd.read_csv(data_path, parse_dates=['Datetime'], index_col='Datetime')
+    except Exception as e:
+        return {
+            'status': 'error',
+            'error': f'Error cargando CSV: {str(e)}',
+            'generation_time': 0
+        }
     
     if format == 'html':
         # Solo HTML (comportamiento original)
@@ -1178,7 +1679,6 @@ def generate_and_send_monthly_report(
         
     except Exception as e:
         logger.error(f"❌ Error en proceso completo: {e}")
-        import traceback
         traceback.print_exc()
         
         return {
@@ -1298,26 +1798,67 @@ def send_anomaly_alert_pipeline(
 
 if __name__ == "__main__":
     """
-    Ejemplo de uso del ReportGenerator.
+    Ejemplo de uso del ReportGenerator con Railway MySQL.
     """
     print("=" * 80)
-    print("📋 DomusAI - Generador de Reportes")
+    print("📋 DomusAI - Generador de Reportes v2.0 (Railway MySQL)")
     print("=" * 80)
     
-    # Generar reporte rápido
-    print("\n📊 Generando reporte de prueba...")
+    # Opción 1: Generar reporte desde Railway (RECOMENDADO)
+    print("\n📊 Opción 1: Reporte desde Railway MySQL")
+    print("-" * 80)
+    
+    if DATABASE_AVAILABLE:
+        try:
+            result = generate_quick_report(
+                month=6,
+                year=2007,
+                use_railway=True
+            )
+            
+            if result.get('status') == 'success':
+                print(f"✅ Reporte generado desde Railway!")
+                print(f"   📄 HTML: {result['html_path']}")
+                print(f"   ⏱️  Tiempo: {result['generation_time']:.2f}s")
+            else:
+                print(f"⚠️  No hay datos en Railway para Junio 2007")
+                print(f"   Error: {result.get('error')}")
+                print(f"\n🔄 Intentando con CSV fallback...")
+                
+                # Fallback a CSV
+                result = generate_quick_report(
+                    data_path='data/Dataset_clean_test.csv',
+                    month=6,
+                    year=2007,
+                    use_railway=False
+                )
+                
+                if result.get('status') == 'success':
+                    print(f"✅ Reporte generado desde CSV!")
+                    print(f"   📄 HTML: {result['html_path']}")
+                    print(f"   ⏱️  Tiempo: {result['generation_time']:.2f}s")
+        
+        except Exception as e:
+            print(f"❌ Error: {e}")
+    else:
+        print("⚠️  RailwayDatabaseReader no disponible")
+    
+    # Opción 2: Generar reporte desde CSV (fallback)
+    print("\n📊 Opción 2: Reporte desde CSV (fallback)")
+    print("-" * 80)
     
     result = generate_quick_report(
         data_path='data/Dataset_clean_test.csv',
         month=6,
-        year=2007
+        year=2007,
+        use_railway=False
     )
     
-    if result['status'] == 'success':
-        print(f"\n✅ Reporte generado exitosamente!")
+    if result.get('status') == 'success':
+        print(f"✅ Reporte CSV generado exitosamente!")
         print(f"   📄 HTML: {result['html_path']}")
         print(f"   ⏱️  Tiempo: {result['generation_time']:.2f}s")
     else:
-        print(f"\n❌ Error: {result.get('error')}")
+        print(f"❌ Error: {result.get('error')}")
     
     print("\n" + "=" * 80)
