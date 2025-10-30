@@ -1,9 +1,24 @@
 import pandas as pd
 import numpy as np
+from typing import Optional
 
-def limpiar_dataset_consumo():
+def limpiar_dataset_consumo(
+    input_path: str = "data/Dataset_original_test.csv",
+    output_path: str = "data/Dataset_clean_test.csv"
+) -> pd.DataFrame:
     """
     Script para limpiar el dataset de consumo energético.
+    
+    Args:
+        input_path: Ruta al archivo CSV original con datos de consumo
+        output_path: Ruta donde se guardará el CSV limpio
+    
+    Returns:
+        DataFrame con datos limpios e índice datetime
+    
+    Raises:
+        FileNotFoundError: Si el archivo input_path no existe
+        ValueError: Si columnas requeridas faltan en el CSV
     
     Pasos realizados:
     1. Cargar el archivo CSV con pandas
@@ -19,7 +34,7 @@ def limpiar_dataset_consumo():
     
     # 1. Cargar el archivo CSV con pandas
     print("📊 Cargando archivo CSV...")
-    df = pd.read_csv("Dataset de prueba de consumo.csv")
+    df = pd.read_csv(input_path)
     print(f"   Filas cargadas: {len(df):,}")
     print(f"   Columnas: {list(df.columns)}")
     
@@ -34,8 +49,19 @@ def limpiar_dataset_consumo():
     # 3. Convertir fechas de 2 dígitos a 4 dígitos
     print("\n📅 Convirtiendo fechas de 2 a 4 dígitos...")
     
-    def convertir_fecha_a_4_digitos(fecha_str):
-        """Convierte fechas dd/mm/yy a dd/mm/yyyy"""
+    def convertir_fecha_a_4_digitos(fecha_str: str) -> str:
+        """
+        Convierte fechas dd/mm/yy a dd/mm/yyyy
+        
+        Args:
+            fecha_str: Fecha en formato dd/mm/yy
+        
+        Returns:
+            Fecha en formato dd/mm/yyyy
+        
+        Raises:
+            ValueError: Si formato de fecha es inválido
+        """
         try:
             partes = fecha_str.split('/')
             if len(partes) != 3:
@@ -136,8 +162,8 @@ def limpiar_dataset_consumo():
     
     # 7. Guardar el DataFrame limpio en un nuevo CSV
     print("\n💾 Guardando DataFrame limpio...")
-    df.to_csv("consumo_limpio_pruebas.csv")
-    print("   ✅ Dataset guardado como 'consumo_limpio_pruebas.csv'")
+    df.to_csv(output_path)
+    print("   ✅ Dataset guardado como '{output_path}'")
 
     # Mostrar resultados finales
     print("\n" + "="*60)
