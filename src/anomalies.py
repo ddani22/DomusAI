@@ -23,7 +23,7 @@ from scipy import stats
 
 # Configuración de logging
 import sys
-from pathlib import Path
+# Path ya importado arriba en línea 18
 
 # Crear directorio de logs si no existe
 Path('logs').mkdir(exist_ok=True)
@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 class AnomalyDetector:
     """
-    Detector de anomalías en series temporales de consumo energético.
+    📊 Detector de anomalías en series temporales de consumo energético.
     
     Implementa 5 métodos diferentes de detección:
     1. IQR (Inter-Quartile Range) - Estadístico básico
@@ -57,15 +57,24 @@ class AnomalyDetector:
     4. Moving Average - Contexto temporal
     5. Prediction-Based - Comparación con forecast
     
+    Compatible con Railway MySQL (datos en tiempo real) y CSV legacy.
+    
     Attributes:
         method (str): Método principal de detección ('isolation_forest' por defecto)
         params (dict): Parámetros óptimos validados en experimentación
         
     Example:
+        >>> # Con Railway MySQL (RECOMENDADO)
+        >>> from src.anomalies import AnomalyDetector, load_data
+        >>> df = load_data(source='railway')
         >>> detector = AnomalyDetector(method='isolation_forest')
-        >>> df = pd.read_csv('data/Dataset_clean_test.csv', parse_dates=['Datetime'], index_col='Datetime')
         >>> results = detector.detect(df, consensus_threshold=3)
         >>> print(f"Anomalías detectadas: {len(results['high_confidence_anomalies'])}")
+        >>> 
+        >>> # Con CSV legacy
+        >>> df = load_data(source='csv', csv_path='data/Dataset_clean_test.csv')
+        >>> detector = AnomalyDetector(method='isolation_forest')
+        >>> results = detector.detect(df, method='all')
     """
     
     # Parámetros óptimos encontrados en experimentación (03_anomalias.ipynb)
@@ -889,48 +898,161 @@ class AnomalyDetector:
 # FUNCIONES DE UTILIDAD
 # ============================================================================
 
-def load_data(file_path: str) -> pd.DataFrame:
+def load_data(
+    source: str = 'railway',
+    csv_path: Optional[str] = None,
+    db_reader = None,
+    file_path: Optional[str] = None  # Deprecated, mantener para backward compatibility
+) -> pd.DataFrame:
     """
-    Carga dataset de consumo desde CSV.
+    🔄 Carga dataset de consumo desde Railway MySQL o CSV.
+    
+    Soporta múltiples orígenes de datos:
+    - Railway MySQL: Datos en tiempo real desde cloud (RECOMENDADO)
+    - CSV: Archivos locales para testing/desarrollo (LEGACY)
     
     Args:
-        file_path: Ruta al archivo CSV
+        source: Origen de datos - 'railway' (recomendado) | 'csv' (legacy)
+        csv_path: Ruta al archivo CSV si source='csv'
+        db_reader: Instancia de RailwayDatabaseReader (opcional)
+        file_path: DEPRECATED - usar csv_path
         
     Returns:
-        DataFrame con datos cargados e indexados por fecha
+        DataFrame con datos indexados por Datetime
+        
+    Raises:
+        ValueError: Si source inválido o parámetros faltantes
+        RuntimeError: Si Railway no disponible cuando source='railway'
+        
+    Example:
+        >>> # Railway (RECOMENDADO)
+        >>> df = load_data(source='railway')
+        >>> 
+        >>> # CSV legacy
+        >>> df = load_data(source='csv', csv_path='data/Dataset_clean_test.csv')
     """
-    df = pd.read_csv(
-        file_path,
-        parse_dates=['Datetime'],
-        index_col='Datetime'
-    )
-    logger.info(f"✅ Dataset cargado: {len(df):,} registros")
-    logger.info(f"📅 Período: {df.index.min()} a {df.index.max()}")
+    # Backward compatibility: file_path → csv_path
+    if file_path is not None:
+        import warnings
+        warnings.warn(
+            "Parámetro 'file_path' deprecated. Usar 'csv_path' y 'source' en su lugar.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        csv_path = file_path
+        source = 'csv'
+    
+    # Validar source
+    if source not in ['railway', 'csv']:
+        raise ValueError(f"source debe ser 'railway' o 'csv', recibido: {source}")
+    
+    # Cargar según origen
+    if source == 'railway':
+        logger.info("🔄 Cargando datos desde Railway MySQL...")
+        
+        try:
+            # Importar database module
+            from src.database import get_db_reader
+            reader = db_reader or get_db_reader()
+            
+            # Test de conexión
+            if not reader.test_connection():
+                raise RuntimeError("❌ Railway MySQL no disponible - verificar conexión")
+            
+            # Obtener todos los datos
+            df = reader.get_all_data()
+            
+            if df is None or len(df) == 0:
+                raise ValueError("❌ Railway devolvió DataFrame vacío - verificar datos")
+            
+            # Validar formato
+            if not isinstance(df.index, pd.DatetimeIndex):
+                df.index = pd.to_datetime(df.index)
+            
+            logger.info(f"✅ Datos Railway cargados: {len(df):,} registros")
+            logger.info(f"📅 Período: {df.index.min()} a {df.index.max()}")
+            
+        except ImportError as e:
+            error_msg = f"❌ Módulo database.py no encontrado: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+        
+        except Exception as e:
+            error_msg = f"❌ Error cargando datos Railway: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+    
+    elif source == 'csv':
+        if not csv_path:
+            raise ValueError("❌ csv_path requerido cuando source='csv'")
+        
+        logger.info(f"🔄 Cargando CSV legacy: {csv_path}")
+        
+        # Cargar CSV con formato DomusAI
+        df = pd.read_csv(
+            csv_path,
+            parse_dates=['Datetime'],
+            index_col='Datetime'
+        )
+        
+        logger.info(f"✅ Dataset CSV cargado: {len(df):,} registros")
+        logger.info(f"📅 Período: {df.index.min()} a {df.index.max()}")
+    
     return df
 
 
 def quick_detect(
-    file_path: str,
+    source: str = 'railway',
+    csv_path: Optional[str] = None,
     method: str = 'all',
-    save: bool = True
+    save: bool = True,
+    file_path: Optional[str] = None  # Deprecated
 ) -> Dict:
     """
-    Función de conveniencia para detección rápida.
+    🚨 Función de conveniencia para detección rápida de anomalías.
+    
+    Soporta Railway MySQL (datos en tiempo real) y CSV legacy.
     
     Args:
-        file_path: Ruta al dataset CSV
-        method: Método de detección ('all', 'isolation_forest', etc.)
-        save: Guardar resultados
+        source: Origen de datos - 'railway' (recomendado) | 'csv' (legacy)
+        csv_path: Ruta al archivo CSV si source='csv'
+        method: Método de detección ('all', 'isolation_forest', 'zscore', etc.)
+        save: Guardar resultados automáticamente en data/
+        file_path: DEPRECATED - usar csv_path
         
     Returns:
-        Dict con resultados completos
-        
+        Dict con resultados completos de detección:
+            - anomalies: DataFrame con anomalías detectadas
+            - stats: Estadísticas del método usado
+            - consensus_anomalies: Anomalías de alto consenso (si method='all')
+            - classified_anomalies: Anomalías clasificadas por tipo
+            - alerts: Lista de alertas generadas
+            
     Example:
-        >>> results = quick_detect('data/Dataset_clean_test.csv', method='all')
+        >>> # Railway (RECOMENDADO)
+        >>> results = quick_detect(source='railway', method='all')
         >>> print(f"Anomalías detectadas: {len(results['consensus_anomalies'])}")
+        >>> 
+        >>> # CSV legacy
+        >>> results = quick_detect(
+        ...     source='csv',
+        ...     csv_path='data/Dataset_clean_test.csv',
+        ...     method='isolation_forest'
+        ... )
     """
+    # Backward compatibility
+    if file_path is not None:
+        import warnings
+        warnings.warn(
+            "Parámetro 'file_path' deprecated. Usar 'csv_path' y 'source'.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        csv_path = file_path
+        source = 'csv'
+    
     # Cargar datos
-    df = load_data(file_path)
+    df = load_data(source=source, csv_path=csv_path)
     
     # Detectar anomalías
     detector = AnomalyDetector(method='isolation_forest')
@@ -945,26 +1067,50 @@ def quick_detect(
 
 if __name__ == "__main__":
     """
-    Ejemplo de uso del AnomalyDetector.
+    Ejemplo de uso del AnomalyDetector con Railway MySQL.
     """
     print("=" * 80)
     print("🚨 DomusAI - Detector de Anomalías en Consumo Energético")
     print("=" * 80)
     
+    # Auto-detectar data source disponible
+    try:
+        from src.database import get_db_reader
+        db = get_db_reader()
+        if db.test_connection():
+            print("✅ Railway MySQL disponible - usando datos en tiempo real")
+            test_source = 'railway'
+            test_csv_path = None
+        else:
+            raise RuntimeError("Railway no disponible")
+    except Exception as e:
+        print(f"⚠️ Railway no disponible ({e}) - usando CSV legacy")
+        test_source = 'csv'
+        test_csv_path = 'data/Dataset_clean_test.csv'
+    
     # Opción 1: Detección rápida con función de conveniencia
-    print("\n📊 Ejecutando detección rápida...")
-    results = quick_detect(
-        file_path='data/Dataset_clean_test.csv',
-        method='all',
-        save=True
-    )
+    print(f"\n📊 Ejecutando detección rápida desde {test_source.upper()}...")
     
-    print(f"\n✅ Detección completada:")
-    print(f"   Anomalías de consenso: {len(results['consensus_anomalies']):,}")
-    print(f"   Alertas generadas: {len(results.get('alerts', [])):,}")
+    try:
+        results = quick_detect(
+            source=test_source,
+            csv_path=test_csv_path,
+            method='all',
+            save=True
+        )
+        
+        print(f"\n✅ Detección completada:")
+        print(f"   Data source: {test_source.upper()}")
+        print(f"   Anomalías de consenso: {len(results['consensus_anomalies']):,}")
+        print(f"   Alertas generadas: {len(results.get('alerts', [])):,}")
+        
+    except Exception as e:
+        print(f"\n❌ Error en detección: {e}")
+        import traceback
+        traceback.print_exc()
     
-    # Opción 2: Uso detallado con control fino
-    # df = load_data('data/Dataset_clean_test.csv')
+    # Opción 2: Uso detallado con control fino (comentado - descomentar si necesitas)
+    # df = load_data(source=test_source, csv_path=test_csv_path)
     # detector = AnomalyDetector(method='isolation_forest')
     # results = detector.detect(df, method='all', consensus_threshold=3, save=True)
     
