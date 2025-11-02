@@ -1,19 +1,21 @@
 """
-📊 GENERADOR DE DATOS SINTÉTICOS DE CONSUMO ENERGÉTICO
-======================================================
+📊 GENERADOR DE DATOS SINTÉTICOS DE CONSUMO ENERGÉTICO - ESPAÑA
+================================================================
 
-Genera datos sintéticos altamente realistas que imitan patrones de consumo
-doméstico real. Incluye estacionalidad diaria/semanal, ruido aleatorio,
-y anomalías controladas.
+Genera datos sintéticos ultra-realistas para un hogar español, incluyendo:
+- Patrones diarios/semanales específicos de España
+- Estacionalidad (calefacción invierno, AC verano)
+- Vacaciones españolas (Agosto, Navidad, Semana Santa, puentes)
+- Sub-medidores coherentes (Cocina, Lavandería, Clima/Agua)
+- Relaciones físicas correctas (Ley de Ohm, Factor de Potencia)
 
 Autor: DomusAI Team
-Fecha: 2025-10-29
-Versión: 1.0.0
+Fecha: 2025-11-01
+Versión: 2.0.0 - Optimizado para España
 
 Uso:
-    python generate_consumption_data.py --days 30
-    python generate_consumption_data.py --days 90 --profile large
-    python generate_consumption_data.py --days 30 --upload-railway
+    python generate_consumption_data.py --days 1460  # 4 años
+    python generate_consumption_data.py --days 365 --profile large
 """
 
 import pandas as pd
@@ -34,32 +36,49 @@ logger = logging.getLogger(__name__)
 
 
 class SyntheticDataGenerator:
-    """Generador de datos sintéticos de consumo energético"""
+    """Generador de datos sintéticos de consumo energético para España"""
     
-    # Perfiles de consumo (kW)
+    # Perfiles de consumo (kW) - AJUSTADOS PARA DATOS REALES ESPAÑA
+    # Basados en IDAE: Consumo promedio 3,500 kWh/año = 0.40-0.52 kW promedio continuo
     PROFILES = {
         'small': {
-            'base_consumption': 0.5,      # Consumo base nocturno
-            'morning_peak': 2.5,          # Pico matutino (7-9 AM)
-            'evening_peak': 3.0,          # Pico nocturno (18-21 PM)
-            'day_consumption': 1.0,       # Consumo diurno
-            'noise_std': 0.15,            # Desviación estándar del ruido
+            # Piso pequeño (1-2 personas): 2,500-3,000 kWh/año → 0.28-0.34 kW promedio
+            'base_consumption': 0.12,     # Consumo base nocturno (nevera, standby)
+            'morning_peak': 0.9,          # Pico matutino (7-9 AM)
+            'evening_peak': 1.1,          # Pico nocturno (19-22 PM)
+            'day_consumption': 0.20,      # Consumo diurno (casa vacía)
+            'noise_std': 0.04,            # Desviación estándar del ruido
         },
         'medium': {
-            'base_consumption': 0.6,
-            'morning_peak': 3.0,
-            'evening_peak': 4.0,
-            'day_consumption': 1.5,
-            'noise_std': 0.20,
+            # Vivienda mediana (3-4 personas): 3,500-4,500 kWh/año → 0.40-0.52 kW promedio
+            'base_consumption': 0.15,     # Consumo base nocturno
+            'morning_peak': 1.2,          # Pico matutino
+            'evening_peak': 1.5,          # Pico nocturno
+            'day_consumption': 0.28,      # Consumo diurno (teletrabajo ligero)
+            'noise_std': 0.05,            # Desviación estándar del ruido
         },
         'large': {
-            'base_consumption': 0.8,
-            'morning_peak': 4.0,
-            'evening_peak': 5.5,
-            'day_consumption': 2.0,
-            'noise_std': 0.25,
+            # Casa grande (5+ personas): 5,000-7,000 kWh/año → 0.57-0.80 kW promedio
+            'base_consumption': 0.22,     # Consumo base nocturno
+            'morning_peak': 1.8,          # Pico matutino
+            'evening_peak': 2.2,          # Pico nocturno
+            'day_consumption': 0.45,      # Consumo diurno
+            'noise_std': 0.08,            # Desviación estándar del ruido
         }
     }
+    
+    # Festivos españoles fijos (mes, día)
+    SPANISH_HOLIDAYS = [
+        (1, 1),   # Año Nuevo
+        (1, 6),   # Reyes
+        (5, 1),   # Día del Trabajo
+        (8, 15),  # Asunción
+        (10, 12), # Día de la Hispanidad
+        (11, 1),  # Todos los Santos
+        (12, 6),  # Constitución
+        (12, 8),  # Inmaculada
+        (12, 25), # Navidad
+    ]
     
     def __init__(
         self,
@@ -97,8 +116,12 @@ class SyntheticDataGenerator:
         if random_seed is not None:
             np.random.seed(random_seed)
         
-        # Generar períodos de vacaciones aleatorios
-        self.vacation_periods = self._generate_vacation_periods()
+        # Generar períodos de vacaciones y eventos especiales españoles
+        self.vacation_periods = self._generate_spanish_vacation_periods()
+        self.bridge_weekends = self._generate_bridge_weekends()
+        
+        # Generar variabilidad mensual aleatoria
+        self.monthly_variation = self._generate_monthly_variation()
         
         logger.info(f"🎯 Generador inicializado:")
         logger.info(f"   Perfil: {profile}")
@@ -107,46 +130,124 @@ class SyntheticDataGenerator:
         logger.info(f"   Frecuencia: {frequency}")
         logger.info(f"   Tasa anomalías: {anomaly_rate}%")
     
-    def _generate_vacation_periods(self) -> list:
+    def _generate_spanish_vacation_periods(self) -> list:
         """
-        Genera períodos de vacaciones aleatorios
+        Genera períodos de vacaciones típicos españoles
         
         Returns:
-            Lista de tuplas (fecha_inicio, fecha_fin) para vacaciones
+            Lista de tuplas (fecha_inicio, fecha_fin, tipo, probabilidad_fuera)
         """
         vacation_periods = []
         
-        # Probabilidad de vacaciones según duración del dataset
-        if self.days >= 90:
-            # Para 90+ días, generar 1-2 períodos de vacaciones
-            n_vacations = np.random.randint(1, 3)
-        elif self.days >= 30:
-            # Para 30-90 días, 30% probabilidad de 1 período
-            n_vacations = 1 if np.random.random() < 0.3 else 0
-        else:
-            # Menos de 30 días, sin vacaciones
-            n_vacations = 0
+        # Calcular cuántos años completos abarca el dataset
+        end_date = self.start_date + timedelta(days=self.days)
+        years = list(range(self.start_date.year, end_date.year + 1))
         
-        for _ in range(n_vacations):
-            # Duración de vacaciones: 7-14 días
-            vacation_days = np.random.randint(7, 15)
+        for year in years:
+            # 1. AGOSTO - Vacaciones de verano (2-3 semanas, siempre fuera)
+            august_start = max(self.start_date, datetime(year, 8, 1))
+            august_duration = np.random.randint(14, 22)  # 2-3 semanas
+            august_end = august_start + timedelta(days=august_duration)
             
-            # Elegir fecha de inicio aleatoria (no muy al principio o final)
-            margin = max(5, self.days // 10)
-            possible_start = np.random.randint(margin, max(margin + 1, self.days - vacation_days - margin))
+            if august_end <= end_date:
+                vacation_periods.append((august_start, august_end, 'AGOSTO', 1.0))
+                logger.info(f"🏖️  Vacaciones de Agosto {year}: {august_start.strftime('%Y-%m-%d')} → {august_end.strftime('%Y-%m-%d')}")
             
-            vacation_start = self.start_date + timedelta(days=possible_start)
-            vacation_end = vacation_start + timedelta(days=vacation_days)
+            # 2. NAVIDAD (23 Dic - 7 Ene, 50% probabilidad fuera/casa)
+            christmas_start = max(self.start_date, datetime(year, 12, 23))
+            christmas_end = min(end_date, datetime(year + 1, 1, 7))
             
-            vacation_periods.append((vacation_start, vacation_end))
-            logger.info(f"🏖️  Período de vacaciones: {vacation_start.strftime('%Y-%m-%d')} → {vacation_end.strftime('%Y-%m-%d')}")
+            if christmas_start < end_date and christmas_end > self.start_date:
+                away_probability = 0.5  # 50% fuera, 50% en casa con familia
+                vacation_periods.append((christmas_start, christmas_end, 'NAVIDAD', away_probability))
+                logger.info(f"🎄 Vacaciones de Navidad {year}: {christmas_start.strftime('%Y-%m-%d')} → {christmas_end.strftime('%Y-%m-%d')}")
+            
+            # 3. SEMANA SANTA (varía cada año, aproximadamente finales marzo/abril)
+            # Simplificación: 2ª semana de abril
+            easter_start = max(self.start_date, datetime(year, 4, 8))
+            easter_end = min(end_date, datetime(year, 4, 15))
+            
+            if easter_start < end_date and easter_end > self.start_date:
+                away_probability = 0.5  # 50% fuera, 50% en casa
+                vacation_periods.append((easter_start, easter_end, 'SEMANA_SANTA', away_probability))
+                logger.info(f"🐣 Semana Santa {year}: {easter_start.strftime('%Y-%m-%d')} → {easter_end.strftime('%Y-%m-%d')}")
         
         return vacation_periods
     
-    def _is_vacation(self, timestamp: pd.Timestamp) -> bool:
+    def _generate_bridge_weekends(self) -> list:
+        """
+        Genera fines de semana "puente" españoles
+        
+        Returns:
+            Lista de tuplas (fecha_inicio, fecha_fin) para puentes
+        """
+        bridge_weekends = []
+        end_date = self.start_date + timedelta(days=self.days)
+        years = list(range(self.start_date.year, end_date.year + 1))
+        
+        # Festivos que suelen generar puentes
+        bridge_holidays = [
+            (5, 1),   # 1 de Mayo
+            (10, 12), # 12 de Octubre
+            (11, 1),  # 1 de Noviembre
+            (12, 6),  # Constitución
+            (12, 8),  # Inmaculada
+        ]
+        
+        for year in years:
+            for month, day in bridge_holidays:
+                holiday_date = datetime(year, month, day)
+                
+                # Si el festivo cae en martes o jueves, hay puente
+                if holiday_date.weekday() in [1, 3]:  # Martes=1, Jueves=3
+                    if holiday_date.weekday() == 1:  # Martes -> puente desde viernes
+                        bridge_start = holiday_date - timedelta(days=4)  # Viernes anterior
+                    else:  # Jueves -> puente hasta lunes
+                        bridge_start = holiday_date - timedelta(days=2)  # Miércoles (algunos salen)
+                    
+                    bridge_end = holiday_date + timedelta(days=3)  # Hasta domingo
+                    
+                    if bridge_start >= self.start_date and bridge_end <= end_date:
+                        bridge_weekends.append((bridge_start, bridge_end))
+                        logger.info(f"� Puente festivo: {bridge_start.strftime('%Y-%m-%d')} → {bridge_end.strftime('%Y-%m-%d')}")
+        
+        return bridge_weekends
+    
+    def _generate_monthly_variation(self) -> Dict[int, float]:
+        """
+        Genera variación aleatoria mensual del consumo
+        
+        Returns:
+            Dict con factores multiplicadores por mes (1-12)
+        """
+        monthly_factors = {}
+        
+        # Generar factores aleatorios entre 0.85 y 1.15 (±15% variación)
+        for month in range(1, 13):
+            # Algunos meses con más variación que otros
+            if month in [7, 8]:  # Verano - puede variar más por vacaciones
+                factor = np.random.uniform(0.80, 1.10)
+            elif month in [12, 1]:  # Invierno - puede variar por fiestas
+                factor = np.random.uniform(0.90, 1.20)
+            else:
+                factor = np.random.uniform(0.90, 1.10)
+            
+            monthly_factors[month] = factor
+            logger.info(f"📅 Variación mes {month}: {factor:.2f}x")
+        
+        return monthly_factors
+    
+    def _is_vacation(self, timestamp: pd.Timestamp) -> Tuple[bool, str, float]:
         """Verifica si una fecha está en período de vacaciones"""
-        for vacation_start, vacation_end in self.vacation_periods:
+        for vacation_start, vacation_end, vacation_type, away_prob in self.vacation_periods:
             if vacation_start <= timestamp <= vacation_end:
+                return True, vacation_type, away_prob
+        return False, '', 0.0
+    
+    def _is_bridge_weekend(self, timestamp: pd.Timestamp) -> bool:
+        """Verifica si una fecha está en un puente festivo"""
+        for bridge_start, bridge_end in self.bridge_weekends:
+            if bridge_start <= timestamp <= bridge_end:
                 return True
         return False
     
@@ -172,17 +273,17 @@ class SyntheticDataGenerator:
         # Otoño: Sep, Oct, Nov (9, 10, 11) - Consumo normal
         
         if month in [12, 1, 2]:  # Invierno
-            factor_base = 1.1  # +10% consumo base (menos luz natural)
-            factor_hvac = 1.3  # +30% calefacción
+            factor_base = 1.05  # +5% consumo base (menos luz natural)
+            factor_hvac = 1.0   # Calefacción moderada
         elif month in [6, 7, 8]:  # Verano
-            factor_base = 0.95  # -5% consumo base (más luz natural)
-            factor_hvac = 1.2  # +20% aire acondicionado
+            factor_base = 0.98  # -2% consumo base (más luz natural)
+            factor_hvac = 0.9   # Aire acondicionado moderado
         elif month in [3, 4, 5]:  # Primavera
             factor_base = 1.0
-            factor_hvac = 0.3  # HVAC mínimo
+            factor_hvac = 0.2  # HVAC mínimo
         else:  # Otoño (9, 10, 11)
-            factor_base = 1.05
-            factor_hvac = 0.5  # HVAC moderado
+            factor_base = 1.02
+            factor_hvac = 0.3  # HVAC moderado
         
         return factor_base, factor_hvac
     
@@ -200,7 +301,7 @@ class SyntheticDataGenerator:
     
     def _get_hourly_pattern(self, hour: int, is_weekend: bool, timestamp: pd.Timestamp) -> float:
         """
-        Calcula el factor de consumo según la hora del día
+        Calcula el factor de consumo según la hora del día (Patrón español)
         
         Args:
             hour: Hora del día (0-23)
@@ -208,67 +309,70 @@ class SyntheticDataGenerator:
             timestamp: Timestamp completo para variabilidad adicional
             
         Returns:
-            Factor multiplicador de consumo (0.5-1.5)
+            Factor multiplicador de consumo
         """
-        # Variabilidad adicional: algunos fines de semana la gente sale (consumo bajo)
-        # otros se quedan en casa (consumo alto)
-        weekend_away_probability = 0.25  # 25% de fines de semana fuera
-        weekend_home_probability = 0.35  # 35% de fines de semana en casa
-        
         # Determinar tipo de fin de semana (usar día del año para consistencia)
         weekend_seed = timestamp.dayofyear % 100
         
         if is_weekend:
             if weekend_seed < 25:  # 25% - Fin de semana FUERA
                 # Consumo muy bajo todo el día
-                morning_peak_hour = 10  # Se despiertan tarde
-                evening_peak_hour = 22  # Vuelven tarde
-                morning_component = 0.3 * np.exp(-((hour - morning_peak_hour) ** 2) / (2 * 3 ** 2))
-                evening_component = 0.4 * np.exp(-((hour - evening_peak_hour) ** 2) / (2 * 3 ** 2))
-                pattern = 0.2 + morning_component + evening_component  # Muy bajo
+                morning_peak_hour = 11  # Se despiertan muy tarde
+                evening_peak_hour = 23  # Vuelven tarde de cenar fuera
+                morning_component = 0.1 * np.exp(-((hour - morning_peak_hour) ** 2) / (2 * 3 ** 2))
+                evening_component = 0.15 * np.exp(-((hour - evening_peak_hour) ** 2) / (2 * 3 ** 2))
+                pattern = 0.10 + morning_component + evening_component
                 
             elif weekend_seed < 60:  # 35% - Fin de semana EN CASA
-                # Consumo alto y más distribuido
-                morning_peak_hour = 10  # Se despiertan tarde
-                afternoon_peak = 14  # Comida/actividades
-                evening_peak_hour = 21  # Cena/TV
+                # Consumo alto y más distribuido (horario español)
+                morning_peak_hour = 10  # Desayuno tardío
+                lunch_peak = 14  # Comida (hora española)
+                evening_peak_hour = 21  # Cena (hora española)
                 
-                morning_component = 0.7 * np.exp(-((hour - morning_peak_hour) ** 2) / (2 * 2 ** 2))
-                afternoon_component = 0.5 * np.exp(-((hour - afternoon_peak) ** 2) / (2 * 3 ** 2))
-                evening_component = 0.9 * np.exp(-((hour - evening_peak_hour) ** 2) / (2 * 3 ** 2))
-                pattern = 0.6 + morning_component + afternoon_component + evening_component
+                morning_component = 0.35 * np.exp(-((hour - morning_peak_hour) ** 2) / (2 * 2 ** 2))
+                lunch_component = 0.45 * np.exp(-((hour - lunch_peak) ** 2) / (2 * 2 ** 2))
+                evening_component = 0.50 * np.exp(-((hour - evening_peak_hour) ** 2) / (2 * 2.5 ** 2))
+                pattern = 0.30 + morning_component + lunch_component + evening_component
                 
             else:  # 40% - Fin de semana NORMAL
-                # Patrón normal pero desplazado (despertar tarde)
+                # Patrón normal pero con horarios españoles
                 morning_peak_hour = 10  # Despertar tarde
-                evening_peak_hour = 21  # Cena más tarde
+                lunch_peak = 15  # Comida tardía
+                evening_peak_hour = 22  # Cena tardía
                 
-                morning_component = 0.6 * np.exp(-((hour - morning_peak_hour) ** 2) / (2 * 2.5 ** 2))
-                evening_component = 0.8 * np.exp(-((hour - evening_peak_hour) ** 2) / (2 * 3 ** 2))
-                pattern = 0.5 + morning_component + evening_component
+                morning_component = 0.30 * np.exp(-((hour - morning_peak_hour) ** 2) / (2 * 2 ** 2))
+                lunch_component = 0.35 * np.exp(-((hour - lunch_peak) ** 2) / (2 * 2 ** 2))
+                evening_component = 0.40 * np.exp(-((hour - evening_peak_hour) ** 2) / (2 * 2.5 ** 2))
+                pattern = 0.25 + morning_component + lunch_component + evening_component
         
-        else:  # DÍAS LABORABLES
-            morning_peak_hour = 7  # Despertar temprano
-            evening_peak_hour = 20  # Vuelta del trabajo
-            
-            # Calcular componente sinusoidal para pico matutino
-            morning_component = np.exp(-((hour - morning_peak_hour) ** 2) / (2 * 1.5 ** 2))
-            
-            # Calcular componente sinusoidal para pico nocturno
-            evening_component = np.exp(-((hour - evening_peak_hour) ** 2) / (2 * 2.5 ** 2))
-            
-            # Combinar componentes
-            pattern = 0.4 + 0.7 * morning_component + 1.0 * evening_component
+        else:  # DÍAS LABORABLES (horario español)
+            # Noche (00:00-06:00): Consumo base muy bajo
+            if 0 <= hour < 6:
+                pattern = 0.12  # Muy bajo (solo nevera y standby)
+            # Mañana (06:00-09:00): Pico moderado (duchas, desayuno)
+            elif 6 <= hour < 9:
+                morning_peak_hour = 7.5
+                pattern = 0.55 * np.exp(-((hour - morning_peak_hour) ** 2) / (2 * 1 ** 2)) + 0.15
+            # Día (09:00-17:00): Consumo bajo (casa vacía)
+            elif 9 <= hour < 17:
+                # Pequeño pico a mediodía (algunos vuelven a comer)
+                lunch_component = 0.15 * np.exp(-((hour - 14) ** 2) / (2 * 1.5 ** 2))
+                pattern = 0.12 + lunch_component  # Muy bajo, casa vacía
+            # Tarde/Noche (17:00-23:00): Pico principal (cocina, luces, TV)
+            else:
+                # Pico principal entre 19:00-22:00 (hora española de cena)
+                evening_peak_hour = 20.5
+                pattern = 0.65 * np.exp(-((hour - evening_peak_hour) ** 2) / (2 * 2 ** 2)) + 0.22
         
         # Añadir variabilidad diaria (±10%)
         daily_variation = np.random.uniform(0.9, 1.1)
         pattern *= daily_variation
         
-        return max(0.2, pattern)  # Mínimo 0.2
+        return max(0.1, pattern)
     
     def _generate_base_consumption(self, timestamps: pd.DatetimeIndex) -> np.ndarray:
         """
-        Genera patrón de consumo base con estacionalidad
+        Genera patrón de consumo base con estacionalidad española
         
         Args:
             timestamps: Índice de fechas
@@ -282,13 +386,18 @@ class SyntheticDataGenerator:
         
         for i, ts in enumerate(timestamps):
             hour = ts.hour
+            month = ts.month
             is_weekend = ts.dayofweek >= 5  # Sábado=5, Domingo=6
-            is_vacation = self._is_vacation(ts)
+            is_vacation, vacation_type, away_prob = self._is_vacation(ts)
+            is_bridge = self._is_bridge_weekend(ts)
             
             # Obtener factores estacionales
             seasonal_base, seasonal_hvac = self._get_seasonal_factor(ts)
             
-            # Factor horario con patrones mejorados
+            # Obtener variación mensual aleatoria
+            monthly_factor = self.monthly_variation.get(month, 1.0)
+            
+            # Factor horario con patrones españoles
             hourly_factor = self._get_hourly_pattern(hour, is_weekend, ts)
             
             # Consumo base según hora
@@ -296,9 +405,9 @@ class SyntheticDataGenerator:
                 base = self.profile['base_consumption']
             elif 6 <= hour < 9:  # Mañana (pico)
                 base = self.profile['morning_peak']
-            elif 9 <= hour < 18:  # Día
+            elif 9 <= hour < 17:  # Día
                 base = self.profile['day_consumption']
-            else:  # Tarde-noche (pico)
+            else:  # Tarde-noche (pico ALTO en España)
                 base = self.profile['evening_peak']
             
             # Aplicar factor horario
@@ -307,19 +416,33 @@ class SyntheticDataGenerator:
             # Aplicar factor estacional al consumo base
             consumption[i] *= seasonal_base
             
-            # Añadir consumo de HVAC según estación
-            # El HVAC varía más durante el día (más uso cuando hace más calor/frío)
+            # Aplicar variación mensual aleatoria
+            consumption[i] *= monthly_factor
+            
+            # Añadir consumo de HVAC según estación (reducido para promedios realistas)
+            # El HVAC varía más durante el día
             if 10 <= hour <= 22:  # HVAC principalmente diurno
-                hvac_consumption = self.profile['day_consumption'] * seasonal_hvac * 0.3
+                hvac_consumption = self.profile['day_consumption'] * seasonal_hvac * 0.15
             else:
-                hvac_consumption = self.profile['base_consumption'] * seasonal_hvac * 0.2
+                hvac_consumption = self.profile['base_consumption'] * seasonal_hvac * 0.10
             
             consumption[i] += hvac_consumption
             
-            # Si están de vacaciones, reducir consumo drásticamente
+            # Gestionar vacaciones y puentes
             if is_vacation:
-                # Solo queda consumo base (nevera, standby, etc.)
-                consumption[i] = consumption[i] * 0.15  # 15% del consumo normal
+                # Decidir si están fuera basado en probabilidad
+                if np.random.random() < away_prob:
+                    # FUERA: Solo queda consumo base (nevera, standby)
+                    consumption[i] = consumption[i] * 0.15  # 15% del consumo normal
+                else:
+                    # EN CASA: Aumentar consumo (familia, invitados, más cocina)
+                    if vacation_type in ['NAVIDAD', 'SEMANA_SANTA']:
+                        consumption[i] = consumption[i] * 1.25  # +25% por invitados/actividades
+            
+            elif is_bridge:
+                # Puentes: 70% de probabilidad de estar fuera
+                if np.random.random() < 0.7:
+                    consumption[i] = consumption[i] * 0.15  # Fuera de casa
         
         return consumption
     
@@ -421,46 +544,116 @@ class SyntheticDataGenerator:
         df: pd.DataFrame
     ) -> pd.DataFrame:
         """
-        Genera variables relacionadas manteniendo coherencia física
+        Genera variables relacionadas manteniendo coherencia física (España)
         
         Args:
-            df: DataFrame con Global_active_power
+            df: DataFrame con Global_active_power e índice de timestamps
             
         Returns:
             DataFrame completo con todas las variables
         """
-        logger.info("🔗 Generando variables relacionadas...")
+        logger.info("🔗 Generando variables relacionadas y sub-medidores...")
         
-        # Voltage (230V ± 10V)
-        df['Voltage'] = np.random.normal(235, 5, size=len(df))
-        df['Voltage'] = df['Voltage'].clip(220, 245)
+        # 1. VOLTAJE (230V ± 8V con ruido gaussiano)
+        df['Voltage'] = np.random.normal(230, 2.5, size=len(df))
+        df['Voltage'] = df['Voltage'].clip(225, 238)
         
-        # Global_reactive_power (10-20% de active power)
-        reactive_factor = np.random.uniform(0.10, 0.20, size=len(df))
-        df['Global_reactive_power'] = df['Global_active_power'] * reactive_factor
+        # 2. SUB-MEDIDORES (patrones españoles realistas)
+        sub1_values = []  # Cocina
+        sub2_values = []  # Lavandería
+        sub3_values = []  # Clima/Agua
         
-        # Global_intensity (Ley de Ohm: I = P / V × 1000)
-        df['Global_intensity'] = (df['Global_active_power'] / df['Voltage']) * 1000
+        for idx in range(len(df)):
+            ts = df.index[idx]
+            hour = ts.hour
+            is_weekend = ts.dayofweek >= 5
+            month = ts.month
+            total_power = df.iloc[idx]['Global_active_power']
+            
+            # SUB_METERING_1: COCINA
+            # Picos en desayuno (8h), comida (14h), cena (21h) - horarios españoles
+            breakfast_peak = 0.6 * np.exp(-((hour - 8) ** 2) / (2 * 1 ** 2))
+            lunch_peak = 0.8 * np.exp(-((hour - 14) ** 2) / (2 * 1.5 ** 2))
+            dinner_peak = 0.85 * np.exp(-((hour - 21) ** 2) / (2 * 1.5 ** 2))
+            
+            kitchen_factor = breakfast_peak + lunch_peak + dinner_peak
+            kitchen_base = 0.03  # Nevera siempre encendida (reducido)
+            sub1 = (total_power * 0.20 * kitchen_factor + kitchen_base) * np.random.uniform(0.8, 1.2)
+            
+            # SUB_METERING_2: LAVANDERÍA
+            # Picos esporádicos, más frecuentes en fines de semana (sábado mañana)
+            if is_weekend and ts.dayofweek == 5:  # Sábado
+                if 10 <= hour <= 13:  # Sábado mañana
+                    laundry_prob = 0.3
+                else:
+                    laundry_prob = 0.05
+            else:
+                laundry_prob = 0.08
+            
+            if np.random.random() < laundry_prob:
+                sub2 = total_power * 0.20 * np.random.uniform(0.8, 1.5)
+            else:
+                sub2 = 0.02  # Consumo residual
+            
+            # SUB_METERING_3: CLIMA/AGUA
+            # Componente estacional fuerte + duchas matutinas
+            seasonal_base, seasonal_hvac = self._get_seasonal_factor(ts)
+            
+            # Duchas matutinas (7-9h) y nocturnas (22-23h)
+            shower_morning = 0.5 * np.exp(-((hour - 8) ** 2) / (2 * 1 ** 2))
+            shower_evening = 0.3 * np.exp(-((hour - 22) ** 2) / (2 * 1 ** 2))
+            shower_factor = shower_morning + shower_evening
+            
+            # HVAC según estación (reducido para promedios realistas)
+            if month in [6, 7, 8]:  # Verano - AC
+                if 14 <= hour <= 18:  # Pico de calor
+                    hvac_factor = 0.8
+                elif 10 <= hour <= 22:
+                    hvac_factor = 0.5
+                else:
+                    hvac_factor = 0.1
+            elif month in [12, 1, 2]:  # Invierno - Calefacción
+                if 6 <= hour <= 23:  # Calefacción todo el día
+                    hvac_factor = 0.6
+                else:
+                    hvac_factor = 0.2
+            else:  # Primavera/Otoño
+                hvac_factor = 0.1
+            
+            sub3 = (total_power * 0.18 * hvac_factor * seasonal_hvac + 
+                    total_power * 0.12 * shower_factor) * np.random.uniform(0.8, 1.2)
+            
+            # Limitar sub-medidores para que no excedan el total
+            sub_total = sub1 + sub2 + sub3
+            if sub_total > total_power * 0.75:  # Máximo 75% medido
+                factor = (total_power * 0.75) / sub_total
+                sub1 *= factor
+                sub2 *= factor
+                sub3 *= factor
+            
+            sub1_values.append(max(0, sub1))
+            sub2_values.append(max(0, sub2))
+            sub3_values.append(max(0, sub3))
         
-        # Sub-metering (proporciones del consumo total en kW)
-        # Sub_metering_1: Cocina (0-40% del total)
-        # Sub_metering_2: Lavandería (0-30% del total)
-        # Sub_metering_3: Agua/Clima (0-30% del total)
+        df['Sub_metering_1'] = np.array(sub1_values).round(3)
+        df['Sub_metering_2'] = np.array(sub2_values).round(3)
+        df['Sub_metering_3'] = np.array(sub3_values).round(3)
         
-        total_power_kw = df['Global_active_power']  # Ya está en kW
+        # 3. POTENCIA REACTIVA (factor de potencia 0.85-0.95)
+        # Simulando inductancia de motores/transformadores
+        power_factor = np.random.uniform(0.85, 0.95, size=len(df))
+        # tan(φ) = Q/P, donde cos(φ) = PF
+        tan_phi = np.tan(np.arccos(power_factor))
+        df['Global_reactive_power'] = (df['Global_active_power'] * tan_phi * 
+                                       np.random.uniform(0.9, 1.1, size=len(df)))
         
-        # Distribución aleatoria pero coherente
-        sub1_ratio = np.random.uniform(0.0, 0.4, size=len(df))
-        sub2_ratio = np.random.uniform(0.0, 0.3, size=len(df))
-        sub3_ratio = np.random.uniform(0.0, 0.3, size=len(df))
-        
-        # Normalizar para que no excedan el total
-        total_ratio = sub1_ratio + sub2_ratio + sub3_ratio
-        factor = np.where(total_ratio > 1.0, 1.0 / total_ratio, 1.0)
-        
-        df['Sub_metering_1'] = (total_power_kw * sub1_ratio * factor).round(3)
-        df['Sub_metering_2'] = (total_power_kw * sub2_ratio * factor).round(3)
-        df['Sub_metering_3'] = (total_power_kw * sub3_ratio * factor).round(3)
+        # 4. INTENSIDAD (Ley de Ohm con factor de potencia)
+        # P = V × I × cos(φ) → I = P / (V × cos(φ))
+        # Simplificado: I (A) = (P_kW × 1000) / (V × 0.9)
+        noise_intensity = np.random.normal(0, 0.05, size=len(df))
+        df['Global_intensity'] = ((df['Global_active_power'] * 1000) / 
+                                  (df['Voltage'] * 0.9)) + noise_intensity
+        df['Global_intensity'] = df['Global_intensity'].clip(0)
         
         return df
     
