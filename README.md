@@ -1,13 +1,14 @@
-# 🏠 DomusAI - Sistema de Monitoreo y Predicción de Consumo Energético
+# 🏠 DomusAI - Sistema Inteligente de Monitoreo y Predicción Energética
 
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
-[![Prophet 1.1.5](https://img.shields.io/badge/Prophet-1.1.5-green.svg)](https://facebook.github.io/prophet/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
+![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
+![Prophet](https://img.shields.io/badge/Prophet-1.1.5-green)
+![Status](https://img.shields.io/badge/Status-Production_Ready-brightgreen)
+![License](https://img.shields.io/badge/License-Not_Specified-lightgrey)
+![Progress](https://img.shields.io/badge/Progress-95%25-orange)
 
-**DomusAI** es un sistema inteligente de análisis, predicción y automatización de consumo energético diseñado para viviendas y comunidades, que combina machine learning, análisis de series temporales y reportes automáticos con notificaciones por email para optimizar el uso de energía.
+**DomusAI** es un sistema de análisis predictivo de consumo energético doméstico y comunitario que combina técnicas avanzadas de *machine learning*, detección automatizada de anomalías, generación de reportes profesionales y notificaciones por email. Diseñado para optimizar el uso de energía mediante predicciones de series temporales, clasificación inteligente de patrones anómalos y automatización de reportes periódicos.
 
-> 🎯 **Estado Actual**: ✅ **Sprint 7 Completado - Sistema de Email Automático (95%)** | **Siguiente**: Hardware IoT Integration
+> 🎯 **Estado Actual**: ✅ **Sprint 7 Completado - Sistema de Email Automático (95%)** | **Versión:** v0.95 | **Siguiente**: Hardware IoT Integration (Sprint 8)
 
 ---
 
@@ -1434,4 +1435,3 @@ SOFTWARE.
 **🎯 DomusAI v1.0 - 95% Completado**: Sistema de automatización energética completamente funcional, listo para integración con hardware IoT.
 
 </div>
-
