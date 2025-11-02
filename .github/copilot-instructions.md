@@ -1,122 +1,314 @@
 # DomusAI - Sistema de Monitoreo y Predicción de Consumo Energético
 
-## Project Architecture & Data Flow
+## Project Status: 95% Complete (v0.95) - Production Ready
 
-**Core Domain**: Energy consumption analysis and prediction for residential/community monitoring with automated reporting.
+**Sistema completo** de análisis energético con ML, detección de anomalías, reportes PDF/HTML y automatización por email. Pendiente: Integración IoT con ESP32 (Sprint 8).
 
-**Data Pipeline**: Raw CSV → `limpiar_dataset.py` → Clean CSV → Analysis → Predictions → Reports → Email notifications
+## Core Architecture
 
-**Key Data Schema**:
-- **Input**: `Dataset de prueba de consumo.csv` with columns: `Date` (dd/mm/yy), `Time`, `Global_active_power`, `Global_reactive_power`, `Voltage`, `Global_intensity`, `Sub_metering_1-3`
-- **Output**: `consumo_limpio_pruebas.csv` with `Datetime` index (converted to 4-digit years) and float64 columns
+### Data Flow (End-to-End Pipeline)
+```
+CSV/ESP32 → data_cleaning.py → Clean Dataset
+    ↓
+EnergyPredictor → Prophet/ARIMA forecasts (1h-30d)
+    ↓
+AnomalyDetector → Multi-method consensus (5 algorithms)
+    ↓
+ReportGenerator → HTML/PDF con gráficos matplotlib
+    ↓
+EmailReporter → SMTP automático (mensual + alertas críticas)
+```
 
-## Essential Patterns & Conventions
+### Key Modules (src/)
 
-### Data Cleaning Workflow (`limpiar_dataset.py`)
+**predictor.py** (1,561 líneas) - Motor de predicción
 ```python
-# Standard pattern for year conversion (2-digit to 4-digit)
-def convertir_fecha_a_4_digitos(fecha_str):
-    # Rule: 00-30 → 2000-2030, 31-99 → 1931-1999
-    if año_2d <= 30:
-        año_4d = 2000 + año_2d
-    elif año_2d >= 70:
-        año_4d = 1900 + año_2d
+from src.predictor import EnergyPredictor
+
+# Prophet es el modelo principal (mejor balance precisión/velocidad)
+predictor = EnergyPredictor('data/Dataset_clean_test.csv')
+predictor.train_prophet_model()
+pred = predictor.predict(horizon_days=7, model='prophet')
+# Retorna: {'predictions': [...], 'statistics': {...}, 'confidence_intervals': {...}}
+```
+- **Prophet**: Modelo principal (MAPE 12.3%, 35s entrenamiento)
+- **ARIMA**: Validación cruzada (MAPE 13.9%, 42s)
+- **Prophet Enhanced**: MCMC sampling (MAPE 11.1%, 3h)
+- **Optimización crítica**: `uncertainty_samples=100` (reducido de 1000 → ahorra 1.8 GB RAM)
+
+**anomalies.py** (1,060 líneas) - Detección multi-método
+```python
+from src.anomalies import AnomalyDetector
+
+detector = AnomalyDetector(method='isolation_forest')
+results = detector.detect(df, method='all', consensus_threshold=3, classify=True)
+# Retorna: {'anomalies': [], 'consensus_anomalies': [], 'classified_anomalies': {}, 'alerts': []}
+```
+- **5 métodos**: IQR, Z-Score, Isolation Forest, Moving Average, Prediction-Based
+- **Consenso**: ≥3 métodos = alta confianza (reduce falsos positivos)
+- **Clasificación**: 4 tipos (consumo_alto, consumo_bajo, temporal, fallo_sensor)
+- **Alertas**: Severidad automática (critical/medium/low) con acciones recomendadas
+
+**reporting.py** (968 líneas) - Generación de reportes
+```python
+from src.reporting import generate_monthly_report_with_pdf
+
+html_path, pdf_path = generate_monthly_report_with_pdf(
+    data_path='data/Dataset_clean_test.csv',
+    month=6, year=2007
+)
+# Genera: reporte_2007-06_TIMESTAMP.html + .pdf
+```
+- **Templates Jinja2**: `reports/templates/monthly_report.html`
+- **Gráficos embebidos**: matplotlib → PNG base64 en HTML
+- **Recomendaciones**: Sistema inteligente basado en patrones (ej: "Pico nocturno 40% sobre promedio")
+- **PDF**: xhtml2pdf para conversión HTML→PDF (340 KB típico)
+
+**email_sender.py** (702 líneas) - Automatización SMTP
+```python
+from src.reporting import generate_and_send_monthly_report
+
+result = generate_and_send_monthly_report(
+    data_path='data/Dataset_clean_test.csv',
+    month=6, year=2007,
+    include_pdf=True,
+    auto_send=True  # Pipeline completo: genera + envía
+)
+# result: {'email_sent': True, 'html_path': ..., 'pdf_path': ..., 'email_recipients': [...]}
+```
+- **Templates**: `reports/email_templates/monthly_report_email.html` (330 líneas)
+- **SMTP**: Gmail con TLS (configuración en `.env`)
+- **Adjuntos**: PDFs hasta 25 MB, multi-destinatario
+- **Logging**: UTF-8 compatible Windows (`logs/email_sender.log`)
+
+**config.py** (400+ líneas) - Configuración centralizada
+```python
+from src.config import PATHS, ML_CONFIG, EMAIL_CONFIG, DB_CONFIG, ENERGY
+
+# Ejemplo: Usar paths centralizados
+df = pd.read_csv(PATHS.CLEAN_CSV)  # data/Dataset_clean_test.csv
+model_path = PATHS.PROPHET_MODEL    # models/prophet_production.pkl
+
+# Constantes de dominio energético (España)
+ENERGY.VOLTAGE_NOMINAL  # 230V
+ENERGY.CONSUMPTION_NORMAL  # 3.0 kW
+ENERGY.PRICE_PER_KWH_PEAK  # 0.25 €/kWh
+```
+- **PathConfig**: Rutas centralizadas (data/, reports/, models/, logs/)
+- **MLConfig**: Hiperparámetros (Prophet, ARIMA, Isolation Forest)
+- **DatabaseConfig**: Railway MySQL credentials (`.env` requerido)
+- **EnergyConstants**: Dominio español (230V±10%, precios IDAE)
+
+### Synthetic Data Generator (Crítico para Testing)
+
+**generate_consumption_data.py** (949 líneas) - Generador ultra-realista español
+```bash
+# Generar 4 años de datos (2.1M registros, 130 MB)
+python synthetic_data_generator/generate_consumption_data.py --days 1460 --profile medium --start-date 2025-10-30
+
+# Output: synthetic_1460days_TIMESTAMP.csv
+# Promedio: ~0.44 kW (realista para hogar español 3-4 personas según IDAE)
+```
+**Patrones implementados**:
+- **Vacaciones españolas**: Agosto (100% fuera), Navidad/Semana Santa (50% fuera), puentes (70% fuera)
+- **Consumo ajustado a IDAE**: `medium` → 3,500-4,500 kWh/año = 0.40-0.52 kW promedio
+- **Estacionalidad**: HVAC invierno/verano, comidas horario español (8h, 14h, 21h)
+- **Sub-metering coherente**: Cocina (25%), Lavandería (8%), HVAC (30%)
+- **Validaciones físicas**: Ley de Ohm, voltaje 225-238V, power factor 0.85-0.95
+
+**CRÍTICO**: Datos sintéticos calibrados tras 3 iteraciones para match con consumos reales españoles (usuario reportó feb 2028 con 0.97 kW → ajustado a 0.47 kW).
+
+## Essential Coding Patterns
+
+### Type Safety (Pylance Strict Mode)
+```python
+# ❌ EVITAR: Pandas index ambiguo
+df.index.year  # Error: Series[Any] no tiene .year
+
+# ✅ CORRECTO: Cast explícito
+idx = pd.DatetimeIndex(df.index)
+idx.year, idx.month, idx.hour  # OK: DatetimeIndex tiene atributos temporales
+
+# ✅ CORRECTO: .to_numpy() en lugar de .values
+plt.plot(df['col'].to_numpy())  # Preferred para matplotlib
 ```
 
-### Error Handling Philosophy
-- Use `errors='coerce'` for datetime parsing to handle malformed data
-- Fill `Sub_metering_3` nulls with 0 (domain-specific: sub-metering can be legitimately zero)
-- Convert '?' and non-numeric values to NaN before float conversion
-
-### Output Formatting
-- Always use emoji-prefixed progress messages: `🔄`, `📊`, `✅`, `⚠️`
-- Show data samples and statistics for verification
-- Include comma-formatted numbers for readability: `f"{len(df):,}"`
-
-## Project Structure
-
-```
-proyecto-energia/
-│── data/                    # Datasets originales y limpios
-│   ├── Dataset_original_test.csv
-│   ├── Dataset_clean_test.csv
-│
-│── notebooks/               # Jupyter Notebooks de pruebas y EDA
-│   ├── 01_eda.ipynb
-│   ├── 02_prediccion.ipynb
-│   ├── 03_anomalias.ipynb
-│
-│── src/                     # Código principal en Python
-│   ├── data_cleaning.py     # Limpieza y preparación de datos
-│   ├── eda.py               # Funciones de análisis exploratorio
-│   ├── prediction.py        # Modelos de predicción
-│   ├── anomalies.py         # Detección de anomalías
-│   ├── reporting.py         # Generación de reportes
-│   ├── email_sender.py      # Envío de correos automáticos
-│
-│── reports/                 # Reportes generados (PDF/HTML)
-│   ├── reporte_2025-01.pdf
-│
-│── README.md               # Descripción del proyecto
-│── requirements.txt        # Dependencias de Python
+### Logging con UTF-8 (Windows PowerShell Compatible)
+```python
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/module.log', encoding='utf-8'),  # ← encoding crítico
+        logging.StreamHandler()
+    ]
+)
+logger.info("✅ Reporte generado exitosamente")  # Emojis funcionan en logs
 ```
 
-## Technology Stack & Dependencies
+### Error Handling con Contexto
+```python
+try:
+    model = Prophet(uncertainty_samples=100).fit(df)
+except Exception as e:
+    logger.error(f"❌ Error entrenando Prophet: {e}")
+    logger.error(f"   Dataset shape: {df.shape}")
+    logger.error(f"   Memory usage: {df.memory_usage().sum() / 1e6:.1f} MB")
+    raise  # Re-raise con contexto en logs
+```
 
-**Core Processing**:
-- **Python** - Backend de procesamiento de datos
-- **Pandas/Numpy** - Limpieza y manipulación de datos
+### Memory Optimization (Prophet en datasets grandes)
+```python
+# Problema: MemoryError con 256k registros (1.91 GB arrays)
+# Solución 1: Reducir uncertainty_samples durante entrenamiento
+model = Prophet(
+    uncertainty_samples=100,  # Default: 1000 (ahorra 1.72 GB)
+    seasonality_mode='multiplicative',
+    changepoint_prior_scale=0.05
+)
 
-**Visualization**:
-- **Matplotlib/Seaborn/Plotly** - Visualización de datos
+# Solución 2: Sin IC durante validación
+temp_model = Prophet(uncertainty_samples=0).fit(train_data)
+forecast = temp_model.predict(test_data)  # Sin intervalos de confianza
+```
 
-**Prediction Models**:
-- **Statsmodels/Prophet/Scikit-learn/TensorFlow (LSTM)** - Modelos de predicción de consumo
+### Output Formatting Conventions
+```python
+# Siempre usar emojis para estados
+logger.info("🔄 Procesando dataset...")
+logger.info("✅ Dataset procesado correctamente")
+logger.warning("⚠️ Valores nulos detectados: {count}")
+logger.error("❌ Error crítico en módulo XYZ")
 
-**Anomaly Detection**:
-- **Scikit-learn/Isolation Forest/Autoencoders** - Detección de anomalías
+# Números con separador de miles
+print(f"📊 Registros procesados: {len(df):,}")  # 260,640 en lugar de 260640
+print(f"💰 Coste estimado: {cost:,.2f} €")     # 1,234.56 €
+```
 
-**Data Storage**:
-- **SQLite o InfluxDB** - Almacenamiento de datos
+## Domain-Specific Knowledge
 
-**Reporting & Communication**:
-- **smtplib/yagmail** - Envío de correos con reportes
-- **Reportlab/WeasyPrint** - Generación de reportes PDF/HTML
+### Spanish Energy Patterns (IDAE Data)
+- **Hogar pequeño** (1-2p): 2,500-3,000 kWh/año → 0.28-0.34 kW promedio
+- **Hogar mediano** (3-4p): 3,500-4,500 kWh/año → 0.40-0.52 kW promedio ⭐ TARGET
+- **Hogar grande** (5+p): 5,000-7,000 kWh/año → 0.57-0.80 kW promedio
 
-**Optional Dashboard**:
-- **Flask/Dash** - Dashboard web para visualización en tiempo real
+**Horarios pico** (patrón español):
+- Mañana: 07:00-09:00 (duchas, desayuno) → 1.5-3.5 kW
+- Noche: 18:00-22:00 (cocina, TV, lavadora) → 2.0-4.5 kW
+- Valle: 00:00-06:00 (standby, nevera) → 0.15-0.30 kW
 
-**Current Dependencies**: Minimal setup (`pandas==2.3.2`, `numpy==2.3.3`) ready for expansion.
+**Voltaje europeo**: 230V ±10% (207-253V válido, >260V crítico)
 
-## Development Workflow
+### Data Validation Rules
+```python
+# Sub-metering debe sumar ≤ 75% del total (resto = unmeasured loads)
+total = df['Global_active_power']
+sub_total = df[['Sub_metering_1', 'Sub_metering_2', 'Sub_metering_3']].sum(axis=1)
+assert (sub_total <= total * 0.75).all(), "Sub-metering incoherente"
 
-**Sequential Pipeline**:
-1. **Limpieza de datos** → preparar dataset (`data_cleaning.py`)
-2. **EDA (análisis exploratorio)** → gráficas y patrones básicos (`eda.py`)
-3. **Modelado predictivo** → entrenar modelos de series temporales (`prediction.py`)
-4. **Detección de anomalías** → identificar consumos anormales (`anomalies.py`)
-5. **Generación de reportes** → PDF/HTML con gráficas y predicciones (`reporting.py`)
-6. **Envío automático de reportes** → correo electrónico (`email_sender.py`)
-7. **(Opcional) Dashboard web** → monitoreo en tiempo real
+# Ley de Ohm: I = P / V × 1000
+calculated_I = (df['Global_active_power'] * 1000) / df['Voltage']
+error = abs(calculated_I - df['Global_intensity']).mean()
+assert error < 0.5, f"Ley de Ohm violada: error {error:.2f}A"
+```
 
-**Current Status**:
-- ✅ Dataset de prueba cargado
-- ✅ Limpieza de datos (completada con `limpiar_dataset.py`)
-- ⏳ **Next Priority**: Exploración inicial y visualizaciones
-- 🔄 **Upcoming**: Primer modelo de predicción, detección de anomalías, reportes automáticos## Energy Domain Knowledge
+## Critical Commands
 
-**Data Characteristics**:
-- 1-minute resolution time series data (260,640 rows = ~6 months)
-- Missing data patterns: ~3,771 nulls (1.4%) typically occur in clusters (sensor failures)
-- Sub-metering values: 0-based, can legitimately be zero during off-peak hours
-- Voltage range: ~230-245V (European standard)
+### Setup & Configuration
+```bash
+# 1. Activar entorno virtual
+.venv\Scripts\Activate.ps1
 
-**Expected Analysis Patterns**:
-- Daily/weekly seasonality in consumption
-- Peak hours: morning (7-9am) and evening (6-9pm)
-- Anomalies: sudden spikes, prolonged high consumption, sensor failures
+# 2. Instalar dependencias (25+ paquetes)
+pip install -r requirements.txt
 
-## Collaboration Context
+# 3. Validar configuración
+python src/config.py  # Imprime resumen + valida paths
 
-**Team Structure**: Python/AI developer + Electronics partner (ESP32/Arduino, MQTT)
-**Future Integration**: Real-time sensor data via MQTT → Database → Analysis pipeline
+# 4. Configurar .env para emails/database
+cp .env.example .env  # Editar con credenciales SMTP + Railway MySQL
+```
+
+### Testing & Validation
+```bash
+# Test suite completa (Sprint 7)
+python tests/test_anomalies_railway.py      # Detección de anomalías
+python tests/test_predictor_railway.py      # Predicciones Prophet
+python tests/test_reporting_railway.py      # Reportes HTML/PDF
+python tests/test_email_templates.py        # Templates de email
+
+# Generación de datos sintéticos
+cd synthetic_data_generator
+python generate_consumption_data.py --days 30 --validate
+```
+
+### Production Pipeline
+```bash
+# Pipeline completo: datos → predicción → anomalías → reporte → email
+python -c "
+from src.reporting import generate_and_send_monthly_report
+result = generate_and_send_monthly_report(
+    data_path='data/Dataset_clean_test.csv',
+    month=6, year=2007,
+    include_pdf=True,
+    auto_send=True
+)
+print(f'✅ Email enviado: {result[\"email_sent\"]}')
+"
+```
+
+## Railway MySQL Integration (Sprint 8 - Pending)
+
+**Database Schema** (simplificado para ESP32):
+```sql
+CREATE TABLE energy_readings (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    timestamp DATETIME NOT NULL,
+    global_active_power DECIMAL(8,3),
+    voltage DECIMAL(6,2),
+    global_intensity DECIMAL(6,3),
+    sub_metering_1 DECIMAL(8,3),
+    sub_metering_2 DECIMAL(8,3),
+    sub_metering_3 DECIMAL(8,3),
+    INDEX idx_timestamp (timestamp)
+);
+```
+
+**Setup**:
+```bash
+# 1. Configurar .env con credenciales Railway
+MYSQL_HOST=your-railway-host.railway.app
+MYSQL_PORT=3306
+MYSQL_DATABASE=railway
+MYSQL_USER=root
+MYSQL_PASSWORD=your-password
+
+# 2. Crear schema (one-time)
+python src/setup_railway_db.py
+
+# 3. Insertar datos sintéticos para testing
+python synthetic_data_generator/examples/insert_to_railway.py
+```
+
+**Connection Pattern**:
+```python
+from src.config import DB_CONFIG
+import mysql.connector
+
+conn = mysql.connector.connect(**DB_CONFIG.connection_params)
+cursor = conn.cursor()
+cursor.execute("SELECT * FROM energy_readings ORDER BY timestamp DESC LIMIT 1440")
+# Último día de datos (1440 minutos)
+```
+
+## Team Collaboration Notes
+
+**Division**: Python/AI dev (este código) + Electronics partner (ESP32 MQTT)
+
+**Next Sprint (8)**: 
+- ESP32 → INSERT directo a Railway MySQL
+- Python → SELECT de Railway → Auto-train → Anomalies → Reports
+- Scheduler automático: Diario (8 AM), Semanal (Lunes 9 AM), Mensual (día 1, 10 AM)
+
+**Code Reviews**: Verificar type-safety (Pylance strict), logging UTF-8, memory optimization en Prophet
