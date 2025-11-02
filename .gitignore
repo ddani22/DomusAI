@@ -17,6 +17,10 @@ data/raw/
 data/processed/
 data/temp/
 
+# Datos sintéticos generados (pueden ser muy pesados: >1 GB)
+synthetic_data_generator/output/*.csv
+synthetic_data_generator/output/*.xlsx
+
 # Modelos entrenados (pueden ser muy grandes)
 models/
 *.pkl
