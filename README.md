@@ -4,11 +4,11 @@
 ![Prophet](https://img.shields.io/badge/Prophet-1.1.5-green)
 ![Status](https://img.shields.io/badge/Status-Production_Ready-brightgreen)
 ![License](https://img.shields.io/badge/License-Not_Specified-lightgrey)
-![Progress](https://img.shields.io/badge/Progress-95%25-orange)
+![Progress](https://img.shields.io/badge/Progress-95%25-brightgreen)
 
-**DomusAI** es un sistema de análisis predictivo de consumo energético doméstico y comunitario que combina técnicas avanzadas de *machine learning*, detección automatizada de anomalías, generación de reportes profesionales y notificaciones por email. Diseñado para optimizar el uso de energía mediante predicciones de series temporales, clasificación inteligente de patrones anómalos y automatización de reportes periódicos.
+**DomusAI** es un sistema completo de análisis predictivo de consumo energético doméstico y comunitario que combina técnicas avanzadas de *machine learning*, detección automatizada de anomalías, generación de reportes profesionales, notificaciones por email automáticas y sistema de scheduler 24/7. Diseñado para optimizar el uso de energía mediante predicciones de series temporales con Prophet, clasificación inteligente de patrones anómalos y automatización completa de reportes periódicos.
 
-> 🎯 **Estado Actual**: ✅ **Sprint 7 Completado - Sistema de Email Automático (95%)** | **Versión:** v0.95 | **Siguiente**: Hardware IoT Integration (Sprint 8)
+> 🎯 **Estado Actual**: ✅ **Sistema 95% Completo - Production Ready** | **Versión:** v0.95 | **Pendiente**: Integración ESP32 IoT (Sprint 8)
 
 ---
 
@@ -35,6 +35,7 @@
 - ✅ **Limpieza inteligente** con manejo de valores faltantes y conversión de formatos de fecha
 - ✅ **Análisis exploratorio completo** (EDA) con identificación de patrones temporales
 - ✅ **Exportación de insights** a JSON para reutilización en pipeline
+- ✅ **Generador de datos sintéticos ultra-realista**: 4 años de datos (2.1M registros) calibrados para España
 
 #### 🔮 **Sistema de Predicción Avanzado**
 - ✅ **Modelos múltiples**: Prophet (principal), ARIMA (validación), Prophet Enhanced
@@ -42,6 +43,8 @@
 - ✅ **Intervalos de confianza**: 95% configurables con análisis de incertidumbre
 - ✅ **Optimización de memoria**: Reducción de 1.8 GB RAM en datasets grandes
 - ✅ **Validación temporal robusta**: Split 80/20 con métricas MAE, RMSE, MAPE, R²
+- ✅ **Validación física**: Clamp a 0.05 kW mínimo (100% predicciones válidas)
+- ✅ **Test scripts optimizados**: test_prediction_fast.py (0.04s vs 240s)
 - ✅ **API modular**: Integración fácil con otros sistemas
 
 #### ⚠️ **Sistema de Detección de Anomalías**
@@ -59,16 +62,18 @@
 - ✅ **Visualizaciones embebidas**: Gráficos matplotlib en PNG de alta resolución
 - ✅ **Análisis temporal completo**: Consumo diario, horario, distribución semanal
 - ✅ **Recomendaciones inteligentes**: Sistema de sugerencias basado en patrones
-- ✅ **Exportación PDF**: Conversión HTML→PDF optimizada para impresión
+- ✅ **Exportación PDF**: Conversión HTML→PDF optimizada para impresión (340 KB típico)
 - ✅ **Infraestructura completa**: Assets (logos, iconos), templates, CSS profesional
 - ✅ **Producción lista**: Módulo de 968+ líneas con logging completo y exportación PDF
-- ✅ **Validado**: Tests generan reportes HTML+PDF exitosamente
+- ✅ **Validado**: Tests generan reportes HTML+PDF exitosamente (~1.5s)
 
-#### 📧 **Sistema de Email Automático** ✨ (NUEVO - Sprint 7)
+#### 📧 **Sistema de Email Automático** ✨
 - ✅ **EmailReporter completo**: Clase robusta de 700+ líneas con SMTP/TLS
 - ✅ **Templates HTML profesionales**: 
   - 📊 **Reporte Mensual**: 330 líneas HTML responsive, PDF adjunto
   - 🚨 **Alerta de Anomalía**: 350+ líneas, diseño urgente por severidad
+  - 📈 **Reportes Diario/Semanal**: Templates optimizados
+  - 🔄 **Notificación Reentrenamiento**: Métricas de modelos
 - ✅ **Métodos especializados**:
   - `send_monthly_report()`: PDFs adjuntos, estadísticas completas
   - `send_anomaly_alert()`: Alertas críticas con recomendaciones
@@ -76,7 +81,34 @@
 - ✅ **Sistema de logging**: UTF-8 compatible, timestamps, debugging completo
 - ✅ **Integración completa**: `generate_and_send_monthly_report()` - pipeline end-to-end
 - ✅ **Multi-destinatario**: Envío simultáneo a múltiples emails
-- ✅ **Validado en producción**: Tests reales confirman entrega exitosa
+- ✅ **Validado en producción**: Tests reales confirman entrega exitosa (3-4s típico)
+
+#### 🤖 **Sistema de Auto-Training y Scheduler** ✨ (NUEVO - Sprint 8)
+- ✅ **Scheduler 24/7**: APScheduler con 5 jobs automáticos configurados
+- ✅ **Job #1 - Detección Horaria**: Anomalías cada 60 minutos con Railway MySQL
+- ✅ **Job #2 - Re-entrenamiento**: Diario 3 AM, ejecución cada 7 días
+  - Prophet + Isolation Forest re-training automático
+  - Validación con últimos 30 días de datos
+  - Backup automático de modelos previos
+  - Notificación por email con métricas (MAE, RMSE, R²)
+- ✅ **Job #3 - Reporte Diario**: 8 AM, HTML con últimas 24h
+- ✅ **Job #4 - Reporte Semanal**: Lunes 9 AM, análisis semanal completo
+- ✅ **Job #5 - Reporte Mensual**: Día 1 del mes 10 AM, HTML+PDF con adjuntos
+- ✅ **Inicialización automática**: `initialize_models.py` crea modelos iniciales
+- ✅ **Configuración YAML**: `config/scheduler_config.yaml` editable
+- ✅ **Windows Task Scheduler**: XML para arranque automático con sistema
+- ✅ **Logging centralizado**: Todos los jobs escriben a logs/scheduler.log
+- ✅ **Railway MySQL Integration**: Queries automáticas a base de datos en producción
+
+#### 🧪 **Testing y Validación** ✨
+- ✅ **test_prediction_fast.py**: Predicciones optimizadas (0.04s, loads pre-trained models)
+- ✅ **test_send_real_email.py**: Validación completa de email con datos sintéticos
+- ✅ **test_anomalies_railway.py**: Tests de detección con Railway MySQL
+- ✅ **test_predictor_railway.py**: Tests de Prophet con datos de producción
+- ✅ **test_reporting_railway.py**: Tests de generación HTML/PDF
+- ✅ **test_auto_trainer.py**: Validación de re-entrenamiento automático
+- ✅ **test_scheduler_jobs.py**: Tests de todos los jobs del scheduler
+- ✅ **test_email_templates.py**: Validación de templates Jinja2
 
 #### 📈 **Visualización y Análisis**
 - ✅ **Gráficos interactivos** con Plotly (notebooks)
@@ -85,17 +117,27 @@
 - ✅ **Componentes de estacionalidad** visualizables (Prophet)
 - ✅ **Visualización de anomalías** por método y tipo
 
+#### � **Documentación Completa** ✨ (NUEVO)
+- ✅ **README.md**: Guía completa de instalación, uso y arquitectura
+- ✅ **ARCHITECTURE.md**: Documentación detallada del sistema de producción
+  - 950 líneas de documentación técnica
+  - Flujos completos de los 5 jobs del scheduler
+  - Estructura de archivos con tamaños y propósitos
+  - Diagramas de flujo de datos en ASCII
+  - Timeline de 24 horas de operación
+  - Comandos de producción y monitoreo
+- ✅ **copilot-instructions.md**: Guía para asistentes AI sobre el proyecto
+- ✅ **synthetic_data_generator/README.md**: Documentación del generador de datos
+
 ### 🔄 **Pendiente** (5% Restante)
 
-#### � **Integración IoT Completa**
-- 📅 Recepción de datos ESP32 vía MQTT
-- 📅 Base de datos en tiempo real (InfluxDB)
-- 📅 Dashboard web con visualización live
-
-#### 🌐 **Dashboard Web** (Opcional - Fase Futura)
-- 📅 Monitoreo en tiempo real con Flask/Dash
-- 📅 Visualizaciones interactivas con Plotly
-- 📅 Gestión de usuarios y permisos
+#### 🔌 **Integración Final IoT con ESP32** (Sprint 9 - Integración)
+- ✅ Hardware ESP32 completado (Electronics Partner)
+- ✅ Sensores ACS712 instalados y calibrados
+- ✅ Código Arduino/C++ funcional
+- 📅 Integración final: ESP32 → MQTT → Railway MySQL → Scheduler Python
+- 📅 Testing end-to-end del flujo completo de datos en tiempo real
+- 📅 Validación de precisión de datos hardware vs sintéticos
 
 ---
 
@@ -109,30 +151,35 @@ matplotlib==3.10.6     # Visualización base para reportes
 seaborn==0.13.2        # Visualización estadística avanzada
 plotly==5.15.0         # Gráficos interactivos en notebooks
 jinja2==3.1.6          # Templates HTML para reportes y emails ✨
-xhtml2pdf==0.2.16      # Conversión HTML → PDF (NUEVO ✨)
+xhtml2pdf==0.2.16      # Conversión HTML → PDF ✨
 ```
 
 ### **Machine Learning & Forecasting**
 ```python
-scikit-learn==1.7.2    # Algoritmos ML, métricas y validación
+scikit-learn==1.7.2    # Algoritmos ML (IsolationForest), métricas y validación
 prophet==1.1.5         # Series temporales con estacionalidad automática (Meta/Facebook)
 statsmodels==0.14.5    # Modelos estadísticos clásicos (ARIMA, SARIMAX)
-keras==3.11.3          # Deep Learning (futuras implementaciones LSTM)
+joblib==1.5.2          # Serialización eficiente de modelos (3-10x más rápido que pickle)
 ```
 
-### **Email & Automation**  ✨ (NUEVO)
+### **Email & Automation** ✨
 ```python
 python-dotenv==1.0.0   # Variables de entorno para credenciales SMTP
-schedule==1.2.2        # Programación de tareas automáticas
-smtplib                 # Protocolo SMTP nativo (incluido en Python)
+APScheduler==3.10.4    # Scheduler avanzado para jobs automáticos (5 jobs configurados) ✨
+smtplib                # Protocolo SMTP nativo (incluido en Python)
 email.mime             # Composición de emails con adjuntos (incluido en Python)
+```
+
+### **Database & IoT**
+```python
+mysql-connector-python==9.2.0  # Conector Railway MySQL para producción ✨
+paho-mqtt==1.6.1              # Protocolo MQTT para ESP32 (próximo sprint)
 ```
 
 ### **Optimization & Performance**
 ```python
-optuna==4.5.0          # Optimización automática de hiperparámetros
+optuna==4.5.0          # Optimización automática de hiperparámetros (futuro)
 memory-profiler==0.61.0 # Profiling de memoria para datasets grandes
-joblib==1.5.2          # Persistencia eficiente de modelos
 ```
 
 ### **Development & Experimentation**
@@ -146,8 +193,8 @@ tqdm==4.67.1           # Barras de progreso para entrenamientos
 ### **Utilities**
 ```python
 python-dateutil==2.9.0.post0  # Manejo avanzado de fechas y timezones
-holidays==0.81                # Días festivos para variables exógenas
-pickle-mixin==1.0.2           # Serialización de objetos complejos
+holidays==0.81                # Días festivos españoles para variables exógenas
+pyyaml==6.0.2                 # Configuración YAML para scheduler ✨
 ```
 
 ---
@@ -160,7 +207,7 @@ pickle-mixin==1.0.2           # Serialización de objetos complejos
 DomusAI/
 │
 ├── 📁 .github/                      # Configuración de GitHub
-│   └── copilot-instructions.md          # Instrucciones para AI assistants
+│   └── copilot-instructions.md          # ✅ Instrucciones completas para AI assistants (Sprint 8)
 │
 ├── 📁 data/                         # ✅ COMPLETO - Datasets y análisis
 │   ├── Dataset_original_test.csv        # 📊 Datos originales (260,640 registros)
@@ -172,58 +219,83 @@ DomusAI/
 │   ├── 01_eda.ipynb                     # ✅ Análisis exploratorio completo (42 celdas)
 │   ├── 02_prediccion.ipynb              # ✅ Experimentación con modelos (42 celdas)
 │   ├── 03_anomalias.ipynb               # ✅ Detección de anomalías (34 celdas)
-│   ├── 04_reportes.ipynb                # ✅ Sistema de reportes (28 celdas) [NUEVO ✨]
+│   ├── 04_reportes.ipynb                # ✅ Sistema de reportes (28 celdas)
 │   └── logs/                            # 📝 Logs de ejecución de notebooks
 │       └── predictions.log
 │
-├── 📁 src/                          # ✅ COMPLETO (5/5 módulos)
+├── 📁 src/                          # ✅ COMPLETO (8/8 módulos) ✨
 │   ├── data_cleaning.py                 # ✅ Sistema de limpieza completo (312 líneas)
 │   │                                    #    - Conversión fechas 2→4 dígitos
 │   │                                    #    - Manejo de '?' y nulos
 │   │                                    #    - Validación de datos
 │   │
 │   ├── predictor.py                     # ✅ Motor de predicción (1,561 líneas)
-│   │                                    #    - Prophet (modelo principal)
+│   │                                    #    - Prophet (modelo principal, MAE=0.179 kW)
 │   │                                    #    - ARIMA (validación)
 │   │                                    #    - Prophet Enhanced (mejorado)
-│   │                                    #    - Ensemble (combinación inteligente)
 │   │                                    #    - Validación temporal automática
 │   │                                    #    - Intervalos de confianza
-│   │                                    #    - Optimización de memoria
+│   │                                    #    - Optimización de memoria (ahorra 1.8 GB)
+│   │                                    #    - Validación física (clamp 0.05 kW mínimo)
 │   │
 │   ├── anomalies.py                     # ✅ Sistema de detección de anomalías (1,060 líneas)
-│   │                                    #    - 5 métodos de detección (IQR, Z-Score, Isolation Forest, MA, Prediction-Based)
+│   │                                    #    - 5 métodos (IQR, Z-Score, IF, MA, Prediction-Based)
 │   │                                    #    - Consenso multi-método (≥3 para alta confianza)
-│   │                                    #    - Clasificación en 4 tipos (alto/bajo/temporal/sensor)
+│   │                                    #    - Clasificación en 4 tipos
 │   │                                    #    - Sistema de alertas por severidad
 │   │                                    #    - Exportación automática CSV + JSON
-│   │                                    #    - Logging UTF-8 compatible Windows
 │   │
 │   ├── reporting.py                     # ✅ Generador de reportes HTML/PDF (968 líneas) ✨
 │   │                                    #    - Templates Jinja2 profesionales
 │   │                                    #    - Resumen ejecutivo con KPIs
 │   │                                    #    - Gráficos matplotlib embebidos
 │   │                                    #    - Sistema de recomendaciones
-│   │                                    #    - Exportación HTML + PDF
+│   │                                    #    - Exportación HTML + PDF (340 KB típico)
 │   │                                    #    - Integración con email_sender.py
-│   │                                    #    - Type-safe (0 errores Pylance)
 │   │
-│   ├── email_sender.py                  # ✅ Sistema de email automático (702 líneas) ✨ (NUEVO)
+│   ├── email_sender.py                  # ✅ Sistema de email automático (702 líneas) ✨
 │   │                                    #    - EmailReporter class con SMTP/TLS
 │   │                                    #    - send_monthly_report() con PDF adjunto
 │   │                                    #    - send_anomaly_alert() por severidad
 │   │                                    #    - Templates HTML profesionales integrados
 │   │                                    #    - Configuración .env segura
-│   │                                    #    - Logging completo UTF-8
 │   │                                    #    - Multi-destinatario simultáneo
 │   │
+│   ├── auto_trainer.py                  # ✅ Sistema de auto-training (500+ líneas) ✨
+│   │                                    #    - Re-entrenamiento automático Prophet + IF
+│   │                                    #    - Validación con últimos 30 días
+│   │                                    #    - Backup automático de modelos
+│   │                                    #    - Notificación por email con métricas
+│   │
+│   ├── config.py                        # ✅ Configuración centralizada (400+ líneas) ✨
+│   │                                    #    - PathConfig: Rutas centralizadas
+│   │                                    #    - MLConfig: Hiperparámetros optimizados
+│   │                                    #    - DatabaseConfig: Railway MySQL credentials
+│   │                                    #    - EnergyConstants: Dominio español (230V, IDAE)
+│   │
+│   ├── database.py                      # ✅ Conexión Railway MySQL (300+ líneas) ✨
+│   │                                    #    - Query builder para energy_readings
+│   │                                    #    - Connection pooling
+│   │                                    #    - Fallback a CSV si DB vacía
+│   │
+│   ├── setup_railway_db.py              # ✅ Script de inicialización DB ✨
+│   ├── validators.py                    # ✅ Validadores de datos (200+ líneas) ✨
+│   ├── exceptions.py                    # ✅ Excepciones personalizadas ✨
 │   └── __pycache__/                     # Cache de Python (ignorado en Git)
 │
-├── 📁 logs/                         # ✅ Sistema de logging activo
+├── 📁 logs/                         # ✅ Sistema de logging UTF-8 activo
 │   ├── predictions.log                  # Registro de predicciones y errores
 │   ├── anomalies.log                    # Registro de detección de anomalías
 │   ├── reporting.log                    # Registro de generación de reportes ✨
-│   └── email_sender.log                 # Registro de envío de emails ✨ (NUEVO)
+│   ├── email_sender.log                 # Registro de envío de emails ✨
+│   ├── scheduler.log                    # Registro del scheduler 24/7 ✨ (NUEVO)
+│   └── metrics_history.json             # Historial de métricas de modelos ✨ (NUEVO)
+│
+├── 📁 models/                       # ✅ Modelos ML pre-entrenados ✨ (NUEVO)
+│   ├── best_prophet.pkl                 # Prophet v20251102_163825 (204 MB, MAE=0.179 kW)
+│   ├── best_isolation_forest.pkl        # IsolationForest (1.48 MB, 100 estimators)
+│   ├── training_history.json            # Historial de entrenamiento con métricas
+│   └── backups/                         # Backups automáticos de modelos previos
 │
 ├── 📁 reports/                      # ✅ INFRAESTRUCTURA COMPLETA ✨
 │   ├── templates/                       # ✅ Plantillas Jinja2
@@ -232,26 +304,62 @@ DomusAI/
 │   ├── styles/                          # ✅ Estilos CSS profesionales
 │   │   └── report_styles.css            # CSS moderno con variables
 │   ├── assets/                          # ✅ Recursos estáticos
-│   │   ├── logo_domusai.png             # Logo del proyecto
+│   │   ├── fonts/                       # Fuentes personalizadas
 │   │   └── icons/                       # Iconos SVG
-│   ├── email_templates/                 # ✅ Templates de email ✨ (NUEVO)
-│   │   ├── monthly_report_email.html    # 📊 Template reporte mensual (330 líneas)
-│   │   └── anomaly_alert_email.html     # 🚨 Template alerta crítica (350+ líneas)
+│   ├── email_templates/                 # ✅ 5 Templates de email ✨
+│   │   ├── monthly_report_email.html    # 📊 Reporte mensual (330 líneas)
+│   │   ├── email_weekly_report.html     # 📈 Reporte semanal ✨
+│   │   ├── email_daily_report.html      # 📅 Reporte diario ✨
+│   │   ├── email_model_retrained.html   # 🔄 Notificación reentrenamiento ✨
+│   │   └── anomaly_alert_email.html     # 🚨 Alerta crítica (350+ líneas)
 │   └── generated/                       # ✅ Reportes y emails generados
-│       ├── reporte_2007-06_*.html       # Reportes HTML
-│       ├── reporte_2007-06_*.pdf        # Reportes PDF ✨
-│       └── daily_consumption_*.png      # Gráficos generados
+│       ├── reporte_*.html               # Reportes HTML (220 KB típico)
+│       └── reporte_*.pdf                # Reportes PDF (340 KB típico) ✨
+│
+├── 📁 scripts/                      # ✅ Scripts de automatización ✨ (ACTUALIZADO)
+│   ├── initialize_models.py             # ✅ Inicialización de modelos (one-time setup)
+│   ├── auto_training_scheduler.py       # ✅ Scheduler 24/7 con 5 jobs automáticos ✨
+│   ├── domusai_scheduler_task.xml       # ✅ Config Windows Task Scheduler ✨
+│   ├── validate_config.py               # ✅ Validación scheduler_config.yaml
+│   └── validate_email_config.py         # ✅ Validación configuración email
+│
+├── 📁 tests/                        # ✅ Suite de tests completa ✨ (ACTUALIZADO)
+│   ├── test_prediction_fast.py          # ✅ Tests predicción optimizados (0.04s) ✨
+│   ├── test_send_real_email.py          # ✅ Tests email con datos sintéticos ✨
+│   ├── test_anomalies_railway.py        # ✅ Tests detección anomalías + Railway
+│   ├── test_predictor_railway.py        # ✅ Tests predictor con Railway
+│   ├── test_reporting_railway.py        # ✅ Tests sistema reportes
+│   ├── test_auto_trainer.py             # ✅ Tests auto-training ✨
+│   ├── test_scheduler_jobs.py           # ✅ Tests scheduler 5 jobs ✨
+│   └── test_email_templates.py          # ✅ Tests templates email
+│
+├── 📁 synthetic_data_generator/     # ✅ Generador datos ultra-realista ✨ (MEJORADO)
+│   ├── README.md                        # Documentación completa generador
+│   ├── ANALYSIS_4YEARS.md               # ✅ Análisis de 4 años de datos ✨
+│   ├── config.yaml                      # Configuración patrones españoles
+│   ├── generate_consumption_data.py     # Generador principal (949 líneas)
+│   │                                    #    - 4 años de datos (2.1M registros, 131 MB)
+│   │                                    #    - Patrones vacaciones españolas
+│   │                                    #    - Calibrado IDAE (0.40-0.52 kW promedio)
+│   │                                    #    - Sub-metering coherente
+│   │                                    #    - Validaciones físicas (Ley de Ohm)
+│   ├── visualize_data.ipynb             # Notebook visualización
+│   ├── examples/
+│   │   └── insert_to_railway.py         # Script inserción Railway MySQL
+│   └── output/                          # CSVs generados
+│       └── synthetic_1460days_*.csv     # Dataset 4 años (131 MB) ✨
+│
+├── 📁 config/                       # ✅ Configuración del sistema ✨
+│   └── scheduler_config.yaml            # Configuración 5 jobs automáticos
 │
 ├── 📁 .venv/                        # 🐍 Entorno virtual Python (ignorado)
 │
+├── 📄 .env                          # ✅ Variables de entorno (SMTP, Railway MySQL) ✨
+├── 📄 .env.example                  # ✅ Template configuración
 ├── 📄 .gitignore                    # ✅ Configuración Git
-├── 📄 .env                          # ✅ Variables de entorno (SMTP credentials) ✨ (NUEVO)
-├── 📄 README.md                     # ✅ Documentación completa (este archivo)
-├── 📄 requirements.txt              # ✅ Dependencias actualizadas (25+ paquetes) ✨
-├── 📄 test_real_email.py            # ✅ Test de email real ✨ (NUEVO)
-├── 📄 test_integration_sprint7.py   # ✅ Test integración completa ✨ (NUEVO)
-├── 📄 test_email_methods.py         # ✅ Test métodos de email ✨ (NUEVO)
-└── 📄 test_templates.py             # ✅ Test templates HTML ✨ (NUEVO)
+├── 📄 README.md                     # ✅ Documentación completa (este archivo) ✨
+├── 📄 ARCHITECTURE.md               # ✅ Arquitectura de producción (950 líneas) ✨ (NUEVO)
+└── 📄 requirements.txt              # ✅ Dependencias actualizadas (30+ paquetes) ✨
 ```
 
 ### **Progreso por Componente**
@@ -263,12 +371,18 @@ DomusAI/
 | **🔮 Predictor** | 1 archivo | ✅ | 1,561 | 100% | ✅ Alta |
 | **⚠️ Anomalías** | 2/2 archivos | ✅ | 1,060 + 34 celdas | 100% | ✅ Alta |
 | **📋 Reportes HTML/PDF** | 1 archivo | ✅ | 968 + 28 celdas | 100% | ✅ Alta |
-| **� Email Automation** | 1 archivo | ✅ | 702 | 100% | ✅ Alta |
-| **� Pipeline Integration** | Funciones | ✅ | ~300 | 100% | ✅ Alta |
-| **🧪 Testing** | 4 archivos | ✅ | ~400 | 100% | 🔵 Alta |
-| **🌐 Dashboard** | 0 archivos | ❌ | 0 | 0% | 🟢 Opcional |
+| **📧 Email Automation** | 1 archivo | ✅ | 702 | 100% | ✅ Alta |
+| **🤖 Auto-Training** | 2 archivos | ✅ | ~1000 | 100% | ✅ Alta |
+| **🔄 Scheduler 24/7** | 1 archivo | ✅ | ~500 | 100% | ✅ Alta |
+| **🗄️ Railway MySQL** | 2 archivos | ✅ | ~400 | 100% | ✅ Alta |
+| **🧪 Testing Suite** | 8 archivos | ✅ | ~1200 | 100% | 🔵 Alta |
+| **📁 Config System** | 1 archivo | ✅ | ~400 | 100% | ✅ Alta |
+| **🔌 IoT Hardware (ESP32)** | Hardware | ✅ | N/A | 100% | ✅ Alta |
+| **� IoT Integration** | Python↔ESP32 | 📅 | ~200 | 0% | �🔴 Alta |
 
 **📊 Progreso Total: 95/100%** hacia DomusAI v1.0
+
+**Sprint 9 (Próximo)**: Integración Final IoT (Python ↔ ESP32 ↔ Railway MySQL)
 
 ---
 
@@ -481,20 +595,24 @@ temp_model = Prophet(
 ### **🎯 Progreso General**
 
 ```
-███████████████████████████████████████████████ 95% Completado
+████████████████████████████████████████████ 95% Completado
 
 Fases:
-✅ Data Cleaning       [████████████████████] 100%
-✅ EDA & Analysis      [████████████████████] 100%
-✅ Prediction Models   [████████████████████] 100%
-✅ Anomaly Detection   [████████████████████] 100%
-✅ HTML Reports        [████████████████████] 100%  
-✅ PDF Export          [████████████████████] 100%  ← COMPLETADO ✨
-✅ Email Automation    [████████████████████] 100%  ← COMPLETADO ✨ (Sprint 7)
-✅ Pipeline Integration[████████████████████] 100%  ← COMPLETADO ✨ (Sprint 7)
-✅ Testing & Docs      [████████████████████] 100%  ← COMPLETADO ✨
-⏳ IoT Integration     [░░░░░░░░░░░░░░░░░░░░]   0%  ← PRÓXIMO (Sprint 8)
-⏳ Web Dashboard       [░░░░░░░░░░░░░░░░░░░░]   0%  (Opcional)
+✅ Data Cleaning        [████████████████████] 100%
+✅ EDA & Analysis       [████████████████████] 100%
+✅ Prediction Models    [████████████████████] 100%
+✅ Anomaly Detection    [████████████████████] 100%
+✅ HTML Reports         [████████████████████] 100%
+✅ PDF Export           [████████████████████] 100%
+✅ Email Automation     [████████████████████] 100%
+✅ Auto-Training System [████████████████████] 100%
+✅ Scheduler 24/7       [████████████████████] 100%
+✅ Railway MySQL        [████████████████████] 100%
+✅ Synthetic Data Gen   [████████████████████] 100%
+✅ Testing & Validation [████████████████████] 100%
+✅ Documentation        [████████████████████] 100%
+✅ IoT Hardware (ESP32) [████████████████████] 100% ← Electronics Partner Completado
+📅 IoT Integration      [░░░░░░░░░░░░░░░░░░░░]   0% ← Sprint 9 (Integración Final)
 ```
 
 ### **✅ Hitos Completados**
@@ -502,7 +620,7 @@ Fases:
 - [x] **Sprint 0: Configuración del Proyecto** (Semana 1)
   - [x] Estructura de carpetas
   - [x] Entorno virtual Python 3.12
-  - [x] Dependencias instaladas (19 paquetes)
+  - [x] Dependencias instaladas (30+ paquetes)
   - [x] Repositorio Git inicializado
 
 - [x] **Sprint 1: Data Cleaning** (Semana 2)
@@ -524,10 +642,11 @@ Fases:
   - [x] Modelo Prophet (principal) con estacionalidad automática
   - [x] Modelo ARIMA para validación cruzada
   - [x] Prophet Enhanced con MCMC sampling
-  - [x] Sistema Ensemble (combinación inteligente)
   - [x] Validación temporal automática (80/20 split)
   - [x] Intervalos de confianza del 95%
   - [x] Optimización de memoria (ahorro 1.8 GB RAM)
+  - [x] Validación física: clamp 0.05 kW mínimo (100% predicciones válidas)
+  - [x] Test script optimizado: test_prediction_fast.py (0.04s ejecución)
   - [x] API modular con salida JSON estructurada
   - [x] Notebook `02_prediccion.ipynb` (42 celdas)
   - [x] Logging completo en `logs/predictions.log`
@@ -548,23 +667,21 @@ Fases:
   - [x] Sistema de alertas por severidad con acciones configurables
   - [x] Exportación automática (CSV + JSON con timestamps)
   - [x] Notebook `03_anomalias.ipynb` (34 celdas)
-  - [x] Script de pruebas `test_anomalies.py` (~400 líneas, 8 tests)
   - [x] Logging UTF-8 compatible con Windows PowerShell
   - [x] Parámetros óptimos validados experimentalmente
 
 - [x] **Sprint 5: Sistema de Reportes HTML** (Semana 8)
   - [x] Infraestructura completa de reportes creada
-  - [x] Módulo `reporting.py` (500+ líneas) - Generación HTML
+  - [x] Módulo `reporting.py` (968 líneas) - Generación HTML
   - [x] Templates Jinja2 profesionales con CSS moderno
   - [x] Resumen ejecutivo con KPIs (consumo, cambio mensual, eficiencia)
   - [x] Gráficos matplotlib embebidos (PNG de alta resolución)
   - [x] Sistema de recomendaciones inteligentes basado en patrones
   - [x] Notebook `04_reportes.ipynb` (28 celdas) - Experimentación completa
-  - [x] Script de prueba `test_reporting_basic.py` (76 líneas)
   - [x] Type-safety completo (0 errores Pylance)
   - [x] Logging UTF-8 compatible con Windows
   - [x] Assets (logos, iconos SVG, CSS)
-  - [x] Test validado: Reporte junio 2007 generado exitosamente
+  - [x] Test validado: Reporte junio 2007 generado exitosamente (~2s)
 
 - [x] **Sprint 6: Sistema de Exportación PDF** (Semana 9)
   - [x] Integración xhtml2pdf para conversión HTML→PDF
@@ -575,11 +692,14 @@ Fases:
   - [x] Test de generación: PDF de 340 KB funcional
   - [x] Tiempo de generación optimizado (~1.5s HTML+PDF)
 
-- [x] **Sprint 7: Sistema de Email Automático** (Semanas 10-11) ✨
+- [x] **Sprint 7: Sistema de Email Automático** (Semanas 10-11)
   - [x] Clase `EmailReporter` (702 líneas) con SMTP/TLS seguro
   - [x] Templates HTML profesionales para emails:
     - [x] `monthly_report_email.html` (330 líneas) - Reporte mensual responsive
     - [x] `anomaly_alert_email.html` (350+ líneas) - Alertas críticas por severidad
+    - [x] `email_daily_report.html` - Reporte diario
+    - [x] `email_weekly_report.html` - Reporte semanal
+    - [x] `email_model_retrained.html` - Notificación reentrenamiento
   - [x] Métodos especializados de envío:
     - [x] `send_monthly_report()` - PDF adjunto + estadísticas completas
     - [x] `send_anomaly_alert()` - Alertas por severidad (critical/warning/medium)
@@ -591,93 +711,124 @@ Fases:
     - [x] `send_anomaly_alert_pipeline()` - Alertas automáticas
   - [x] Multi-destinatario simultáneo desde configuración
   - [x] Suite de tests completa:
-    - [x] `test_templates.py` - Validación de templates HTML
-    - [x] `test_email_methods.py` - Métodos de envío
-    - [x] `test_real_email.py` - Tests con emails reales
-    - [x] `test_integration_sprint7.py` - Pipeline completo
+    - [x] `test_email_templates.py` - Validación de templates HTML
+    - [x] `test_send_real_email.py` - Tests con emails reales (220 KB HTML + 340 KB PDF)
   - [x] Validación en producción: **Emails enviados exitosamente**
 
-**Resultados Sprint 7**:
+- [x] **Sprint 8: Auto-Training y Scheduler 24/7** (Semanas 12-14) ✨
+  - [x] **Inicialización de Modelos**:
+    - [x] Script `initialize_models.py` para setup inicial
+    - [x] Bug fixes: Path handling + quality validation
+    - [x] Modelos creados: best_prophet.pkl (204 MB), best_isolation_forest.pkl (1.48 MB)
+    - [x] Métricas: MAE=0.179 kW, RMSE=0.252 kW, R²=0.660
+  - [x] **Sistema de Auto-Training**:
+    - [x] Módulo `auto_trainer.py` (500+ líneas)
+    - [x] Re-entrenamiento automático Prophet + Isolation Forest
+    - [x] Validación con últimos 30 días de datos Railway
+    - [x] Backup automático de modelos previos con timestamp
+    - [x] Notificación por email con métricas de performance
+    - [x] Fallback a CSV si Railway MySQL vacía
+  - [x] **Scheduler APScheduler**:
+    - [x] Script `auto_training_scheduler.py` (500+ líneas)
+    - [x] **Job #1**: Detección de anomalías horaria (cada 60 min)
+    - [x] **Job #2**: Re-entrenamiento diario 3 AM (ejecución cada 7 días)
+    - [x] **Job #3**: Reporte diario 8 AM (HTML con últimas 24h)
+    - [x] **Job #4**: Reporte semanal lunes 9 AM (análisis completo)
+    - [x] **Job #5**: Reporte mensual día 1 del mes 10 AM (HTML+PDF+Email)
+    - [x] Configuración YAML: `config/scheduler_config.yaml`
+    - [x] Windows Task Scheduler: `domusai_scheduler_task.xml`
+    - [x] Logging centralizado: `logs/scheduler.log` UTF-8
+  - [x] **Railway MySQL Integration**:
+    - [x] Módulo `database.py` con connection pooling
+    - [x] Schema `energy_readings` optimizado para ESP32
+    - [x] Query builder para análisis temporal
+    - [x] Fallback automático a CSV si DB vacía
+    - [x] Tests: `test_anomalies_railway.py`, `test_predictor_railway.py`
+  - [x] **Testing Completo**:
+    - [x] `test_auto_trainer.py` - Validación re-entrenamiento
+    - [x] `test_scheduler_jobs.py` - Tests de 5 jobs
+    - [x] `test_prediction_fast.py` - Predicciones optimizadas (0.04s)
+    - [x] `test_send_real_email.py` - Email con datos sintéticos
+  - [x] **Generador de Datos Sintéticos Mejorado**:
+    - [x] 4 años de datos (2,102,400 registros, 131 MB)
+    - [x] Calibrado para España: 0.40-0.52 kW promedio (IDAE)
+    - [x] Patrones vacaciones españolas (Agosto, Navidad, Semana Santa)
+    - [x] Sub-metering coherente (Cocina 25%, Lavandería 8%, HVAC 30%)
+    - [x] Validaciones físicas (Ley de Ohm, voltaje 225-238V)
+    - [x] Análisis completo: `ANALYSIS_4YEARS.md`
+  - [x] **Configuración y Utilidades**:
+    - [x] Módulo `config.py` centralizado (400+ líneas)
+    - [x] PathConfig, MLConfig, DatabaseConfig, EnergyConstants
+    - [x] Módulo `validators.py` para validación de datos
+    - [x] Módulo `exceptions.py` con excepciones personalizadas
+  - [x] **Documentación Completa**:
+    - [x] `ARCHITECTURE.md` (950 líneas) - Sistema de producción
+    - [x] Flujos de los 5 jobs del scheduler
+    - [x] Timeline de 24 horas de operación
+    - [x] Comandos de producción y monitoreo
+    - [x] `.github/copilot-instructions.md` actualizado
+
+**Resultados Sprint 8**:
 ```python
-# Tests reales ejecutados exitosamente:
-✅ Email básico de configuración: 2.6s entrega
-✅ Reporte mensual con PDF: 3.8s entrega (340 KB adjunto)
-✅ Alerta crítica de anomalía: 3.0s entrega
-✅ Pipeline completo: 5.35s (generación + envío)
-✅ Destinatarios: 2 emails configurados
-✅ Sistema 100% funcional y validado
+# Sistema completamente operacional:
+✅ Scheduler ejecutándose 24/7 con 5 jobs automáticos
+✅ Auto-training cada 7 días con métricas y email
+✅ Reportes diarios/semanales/mensuales automáticos
+✅ Detección de anomalías horaria con Railway MySQL
+✅ Datos sintéticos ultra-realistas (4 años, 2.1M registros)
+✅ Testing completo: 8 archivos, ~1200 líneas
+✅ Documentación técnica completa (README + ARCHITECTURE)
+✅ Sistema 95% completo - Production Ready
 ```
-
-### **🔄 En Desarrollo**
-
-**Ninguno** - Sistema de reportes HTML completado ✅
 
 ### **📋 Roadmap Detallado**
 
-### **� Próximos Sprints**
+### **🔄 Sprint Actual**
 
-#### 🔗 **Sprint 8: Integración IoT Completa** (1-2 semanas)
+#### � **Sprint 9: Integración Final IoT** (1-2 semanas) - **PRÓXIMO**
 
 **Prioridad**: ALTA  
-**Objetivo**: Conectar sensores ESP32 con el sistema de análisis automático
+**Objetivo**: Conectar hardware ESP32 (completado) con sistema Python automático
 
-**Tareas**:
-- [ ] **Configurar recepción MQTT**
+**Estado Hardware ESP32** ✅:
+- ✅ ESP32 con sensores ACS712 configurado y funcional
+- ✅ Código Arduino/C++ completado por Electronics Partner
+- ✅ Lectura de potencia, voltaje, corriente operacional
+- ✅ Tests de precisión hardware validados
+
+**Tareas de Integración Pendientes**:
+- [ ] **Configurar broker MQTT**
+  - Raspberry Pi o cloud MQTT broker (Mosquitto)
+  - Bridge ESP32 → MQTT → Python listener
+  
+- [ ] **Listener Python para MQTT**
   ```python
   import paho.mqtt.client as mqtt
+  from src.database import insert_energy_reading
   
   def on_message(client, userdata, msg):
-      # Procesar datos ESP32 en tiempo real
-      # Guardar en base de datos
-      # Ejecutar detección de anomalías automática
-      pass
+      # Parsear JSON de ESP32
+      data = json.loads(msg.payload)
+      # Insertar en Railway MySQL
+      insert_energy_reading(data)
+      # Trigger detección de anomalías si crítico
+      if data['power'] > threshold:
+          trigger_anomaly_alert(data)
   ```
 
-- [ ] **Base de datos en tiempo real**
-  - InfluxDB para series temporales
-  - Automatización: sensor → DB → análisis → email
+- [ ] **Pipeline Automático Completo**
+  - ESP32 → MQTT (cada 60s)
+  - Python → Railway MySQL (insert)
+  - Scheduler → Query MySQL → Análisis
+  - Anomalías → Email automático
 
-- [ ] **Dashboard en tiempo real**
-  - Streamlit o Flask simple
-  - Gráficos live de consumo
-  - Alertas visuales
+- [ ] **Testing End-to-End**
+  - Validar flujo completo 24h continuas
+  - Comparar datos ESP32 vs sintéticos (precisión)
+  - Validar latencia < 5s (sensor → DB → análisis)
+  - Pruebas de reconexión WiFi/MQTT
 
-**Tiempo Estimado**: 1-2 semanas
-
----
-
-#### 🌐 **Sprint 9: Dashboard Web Completo** (Opcional - 2-3 semanas)
-
-**Prioridad**: MEDIA (Nice-to-have)  
-**Objetivo**: Interfaz web para monitoreo y configuración
-
-**Tareas**:
-- [ ] Frontend con React/Vue o Streamlit
-- [ ] API REST para predicciones
-- [ ] Gestión de usuarios y configuración
-- [ ] Visualizaciones interactivas avanzadas
-
-**Tiempo Estimado**: 2-3 semanas
-
----
-
-### **📊 Estado Final del Proyecto**
-
-| Funcionalidad | Archivos | Líneas | Estado | Completado | 
-|---------------|----------|--------|--------|------------|
-| **Data Pipeline** | 3/3 | ~600 | ✅ | 100% |
-| **EDA & Analysis** | 4/4 | ~146 celdas | ✅ | 100% |
-| **Prediction System** | 2/2 | 1,561 + 42 celdas | ✅ | 100% |
-| **Anomaly Detection** | 3/3 | 1,060 + 34 celdas + 400 tests | ✅ | 100% |
-| **HTML/PDF Reports** | 1/1 | 968 + 28 celdas | ✅ | 100% |
-| **Email Automation** | 1/1 | 702 + 4 tests | ✅ | 100% |
-| **Pipeline Integration** | Funciones | ~300 | ✅ | 100% |
-| **Testing & Validation** | 4/4 | ~400 | ✅ | 100% |
-| **IoT Integration** | 0/1 | 0/~200 | ❌ | 0% |
-| **Web Dashboard** | 0/1 | 0/~800 | ❌ | 0% |
-
-**🎯 DomusAI v1.0 - 95% Completado** ✨  
-**🚀 Sistema de automatización energética completamente funcional**
+**Tiempo Estimado**: 1-2 semanas (Integración colaborativa)
 
 ---
 
@@ -687,8 +838,9 @@ Fases:
 
 - **Python**: 3.12 o superior
 - **RAM**: 4 GB mínimo (8 GB recomendado para datasets grandes)
-- **Espacio en Disco**: 500 MB para entorno + datasets
+- **Espacio en Disco**: 1 GB para entorno + datasets + modelos
 - **SO**: Windows 10/11, Linux (Ubuntu 20.04+), macOS 11+
+- **Base de Datos**: Railway MySQL (opcional, configurado en `.env`)
 
 ### **Instalación**
 
@@ -708,11 +860,38 @@ python -m venv .venv
 # Linux/Mac:
 source .venv/bin/activate
 
-# 4. Instalar dependencias
+# 4. Instalar dependencias (30+ paquetes)
 pip install -r requirements.txt
 
-# 5. Verificar instalación
-python -c "from src.predictor import EnergyPredictor; print('✅ DomusAI instalado correctamente')"
+# 5. Configurar variables de entorno
+# Copiar .env.example a .env y configurar:
+# - SMTP_EMAIL y SMTP_PASSWORD (para emails)
+# - MYSQL_* variables (para Railway MySQL)
+# - DEFAULT_RECIPIENTS (emails separados por coma)
+
+# 6. Verificar instalación
+python -c "from src.predictor import EnergyPredictor; from src.config import PATHS; print('✅ DomusAI instalado correctamente')"
+```
+
+### **Setup Inicial de Modelos** ✨ (NUEVO)
+
+```bash
+# IMPORTANTE: Ejecutar una vez antes del scheduler
+python scripts/initialize_models.py
+
+# Este script:
+# 1. Busca el CSV sintético más reciente (synthetic_data_generator/output/)
+# 2. Entrena Prophet + Isolation Forest
+# 3. Guarda modelos en models/:
+#    - best_prophet.pkl (204 MB)
+#    - best_isolation_forest.pkl (1.48 MB)
+# 4. Genera training_history.json con métricas
+# 5. Tiempo: ~10-15 minutos
+
+# Output esperado:
+# ✅ Prophet entrenado: MAE=0.179 kW, RMSE=0.252 kW, R²=0.660
+# ✅ IsolationForest entrenado: 100 estimators, 5% contamination
+# ✅ Modelos guardados en models/
 ```
 
 ### **Uso Básico**
@@ -745,7 +924,23 @@ jupyter notebook notebooks/01_eda.ipynb
 python -m jupyter notebook notebooks/01_eda.ipynb
 ```
 
-#### **3️⃣ Predicción Energética - API Simple**
+#### **3️⃣ Predicción Energética - Test Rápido** ✨ (NUEVO)
+
+```bash
+# Usar script optimizado (0.04s con modelos pre-entrenados)
+python test_prediction_fast.py
+
+# Output:
+# ✅ Modelo Prophet cargado desde: models/best_prophet.pkl
+# ✅ Predicción completada en 0.04 segundos
+# 📊 Próximas 24 horas:
+#    - Promedio: 0.512 kW
+#    - Máximo: 0.972 kW (19:00)
+#    - Mínimo: 0.134 kW (04:00)
+# ✅ 100% predicciones físicamente válidas (≥0.05 kW)
+```
+
+#### **4️⃣ Predicción Energética - API Completa**
 
 ```python
 from src.predictor import EnergyPredictor
@@ -769,7 +964,7 @@ print(f"🔥 Consumo máximo: {prediction['statistics']['max_consumption']:.3f} 
 print(f"📉 Consumo mínimo: {prediction['statistics']['min_consumption']:.3f} kW")
 ```
 
-#### **4️⃣ Predicción con Intervalos de Confianza**
+#### **5️⃣ Predicción con Intervalos de Confianza**
 
 ```python
 # Predicción avanzada con análisis de incertidumbre
@@ -793,7 +988,7 @@ else:
     print("🔴 Baja confianza - considerar reentrenamiento")
 ```
 
-#### **4️⃣ Detección de Anomalías - API Simple** (NUEVO ✨)
+#### **6️⃣ Detección de Anomalías - API Simple**
 
 ```python
 from src.anomalies import AnomalyDetector, quick_detect
@@ -831,20 +1026,7 @@ results_quick = quick_detect(
 )
 ```
 
-#### **5️⃣ Análisis de Anomalías en Notebooks**
-
-```bash
-# Notebook completo de análisis de anomalías
-jupyter notebook notebooks/03_anomalias.ipynb
-
-# Incluye:
-# - Comparación visual de 5 métodos
-# - Análisis de consenso
-# - Clasificación por tipos
-# - Visualizaciones interactivas de anomalías detectadas
-```
-
-#### **6️⃣ Generación de Reportes HTML/PDF** ✨
+#### **7️⃣ Generación de Reportes HTML/PDF** ✨
 
 ```python
 from src.reporting import generate_and_send_monthly_report
@@ -885,7 +1067,7 @@ print(f"⏱️ Tiempo total: {result['total_time']:.2f}s")
 # - PDF de alta calidad (340 KB) adjunto al email
 ```
 
-#### **7️⃣ Sistema de Email Automático** ✨ (NUEVO - Sprint 7)
+#### **8️⃣ Sistema de Email Automático** ✨
 
 ```python
 from src.email_sender import EmailReporter
@@ -937,38 +1119,97 @@ success = emailer.send_monthly_report(
 )
 ```
 
-#### **8️⃣ Ejecutar Tests de Validación** ✨ (NUEVO - Sprint 7)
+#### **9️⃣ Scheduler 24/7 - Automatización Completa** ✨ (NUEVO)
 
 ```bash
-# Test 1: Templates de email
-python test_templates.py
-# Valida renderizado de templates HTML de email
+# PASO 1: Inicializar modelos (una vez)
+python scripts/initialize_models.py
 
-# Test 2: Métodos de envío de email  
-python test_email_methods.py
-# Valida funciones send_monthly_report() y send_anomaly_alert()
+# PASO 2: Iniciar scheduler (mantener ejecutando)
+python scripts/auto_training_scheduler.py
 
-# Test 3: Email real con credenciales configuradas
-python test_real_email.py
-# Envía emails reales para validar configuración SMTP
+# El scheduler ejecuta automáticamente:
+# ⏰ Cada hora:    Detección de anomalías (Railway MySQL)
+# ⏰ Diario 3 AM:  Re-entrenamiento (cada 7 días)
+# ⏰ Diario 8 AM:  Reporte diario (HTML con últimas 24h)
+# ⏰ Lunes 9 AM:   Reporte semanal (análisis completo)
+# ⏰ Día 1, 10 AM: Reporte mensual (HTML+PDF+Email)
 
-# Test 4: Pipeline de integración completa
-python test_integration_sprint7.py
-# Test end-to-end: generación de reporte + envío de email
+# Logs en tiempo real:
+# logs/scheduler.log       # Todos los jobs
+# logs/predictions.log     # Predicciones
+# logs/anomalies.log       # Anomalías detectadas
+# logs/email_sender.log    # Emails enviados
+```
 
-# Output esperado del test de integración:
-# 🚀 DomusAI - Test Integración Completa Sprint 7
-# ================================================================================
-# ✅ TODOS LOS TESTS DE INTEGRACIÓN PASARON
-# 🎉 ¡SPRINT 7 COMPLETADO EXITOSAMENTE!
-# 
-# 🚀 Capacidades Integradas:
-#    1. ✅ Generación automática de reportes HTML + PDF
-#    2. ✅ Envío automático de reportes mensuales por email  
-#    3. ✅ Sistema de alertas críticas de anomalías
-#    4. ✅ Pipeline completo de automatización
-# 
-# 🎯 ¡SISTEMA DE AUTOMATIZACIÓN 100% FUNCIONAL!
+**Configurar Windows Task Scheduler** (arranque automático con sistema):
+
+```bash
+# 1. Abrir Task Scheduler (taskschd.msc)
+# 2. Importar XML: scripts/domusai_scheduler_task.xml
+# 3. Editar rutas en el XML:
+#    - Cambiar "C:\path\to\DomusAI" por tu ruta real
+# 4. Credenciales: Tu usuario Windows
+# 5. Trigger: Al iniciar sistema
+# 6. ✅ Scheduler arrancará automáticamente con Windows
+```
+
+#### **🔟 Generar Datos Sintéticos** ✨ (NUEVO)
+
+```bash
+cd synthetic_data_generator
+
+# Generar 4 años de datos (2.1M registros, 131 MB)
+python generate_consumption_data.py --days 1460 --profile medium --start-date 2025-10-30
+
+# Parámetros:
+# --days: Cantidad de días (1460 = 4 años)
+# --profile: low, medium, high (medium = hogar 3-4 personas)
+# --start-date: Fecha inicial (formato YYYY-MM-DD)
+# --validate: Validar datos generados
+
+# Output: synthetic_data_generator/output/synthetic_1460days_TIMESTAMP.csv
+
+# Características de los datos:
+# ✅ Promedio 0.40-0.52 kW (calibrado IDAE España)
+# ✅ Vacaciones españolas (Agosto, Navidad, Semana Santa)
+# ✅ Horarios españoles (comidas 8h, 14h, 21h)
+# ✅ Sub-metering coherente (Cocina, Lavandería, HVAC)
+# ✅ Validación física completa (Ley de Ohm, voltaje 225-238V)
+```
+
+#### **1️⃣1️⃣ Ejecutar Tests de Validación** ✨
+
+```bash
+# Test 1: Predicción rápida (0.04s con modelo pre-entrenado)
+python test_prediction_fast.py
+
+# Test 2: Email real con datos sintéticos
+python tests/test_send_real_email.py
+
+# Test 3: Detección de anomalías + Railway MySQL
+python tests/test_anomalies_railway.py
+
+# Test 4: Predictor con Railway MySQL
+python tests/test_predictor_railway.py
+
+# Test 5: Sistema de reportes HTML/PDF
+python tests/test_reporting_railway.py
+
+# Test 6: Auto-training system
+python tests/test_auto_trainer.py
+
+# Test 7: Scheduler jobs (5 jobs)
+python tests/test_scheduler_jobs.py
+
+# Test 8: Templates de email
+python tests/test_email_templates.py
+
+# Output esperado:
+# ✅ Todos los tests PASS
+# ✅ Modelos cargados correctamente
+# ✅ Emails enviados (si configurado)
+# ✅ Railway MySQL conectado (si configurado)
 ```
 
 ---
@@ -1256,10 +1497,15 @@ temp_model = Prophet(
 
 ### **Equipo DomusAI**
 
-| Rol | Responsabilidades | Stack |
-|-----|-------------------|-------|
-| **Developer Python/AI** | - Análisis de datos<br>- Machine Learning<br>- Backend API<br>- Pipeline de predicción | Python, Prophet, scikit-learn, pandas |
-| **Electronics Partner** | - Sensores ESP32/Arduino<br>- Integración MQTT<br>- Hardware setup<br>- Protocolo IoT | C/C++, MQTT, ESP32, Sensores ACS712 |
+| Rol | Responsabilidades | Stack | Estado |
+|-----|-------------------|-------|---------|
+| **Developer Python/AI** | - Análisis de datos<br>- Machine Learning<br>- Backend API<br>- Pipeline de predicción<br>- Scheduler 24/7 | Python, Prophet, scikit-learn, pandas, APScheduler | ✅ 95% Completo |
+| **Electronics Partner** | - Hardware ESP32<br>- Sensores ACS712<br>- Código Arduino/C++<br>- Protocolo MQTT | C/C++, MQTT, ESP32, Sensores | ✅ 100% Completo |
+
+**Estado Colaboración**: 
+- ✅ Python backend completado
+- ✅ Hardware ESP32 completado
+- 📅 Integración final pendiente (Sprint 9)
 
 ### **¿Cómo Contribuir?**
 
@@ -1419,19 +1665,27 @@ SOFTWARE.
 
 ---
 
-*Última actualización: Octubre 8, 2025*  
+*Última actualización: Noviembre 2, 2025*  
 *Versión: 0.95 (95% hacia v1.0)*  
 *Proyecto: DomusAI - Sistema de Monitoreo Energético Inteligente*
 
-**🆕 Nuevo en v0.95 - Sprint 7 Completado**:
-- ✅ Sistema de email automático completo (EmailReporter - 702 líneas)
-- ✅ Templates HTML profesionales para reportes y alertas
-- ✅ Pipeline end-to-end: generación + envío automático
-- ✅ Integración PDF + Email validada en producción
-- ✅ Suite de tests completa (4 archivos de testing)
-- ✅ Configuración SMTP segura con variables .env
-- ✅ Sistema 100% funcional listo para IoT integration
+**🆕 Nuevo en v0.95 - Sistema de Producción Completo**:
+- ✅ **Scheduler 24/7** con 5 jobs automáticos (APScheduler)
+- ✅ **Auto-training system** cada 7 días con backup de modelos
+- ✅ **Modelos pre-entrenados**: Prophet (204 MB) + IsolationForest (1.48 MB)
+- ✅ **Railway MySQL integration** con fallback automático a CSV
+- ✅ **Test scripts optimizados**: test_prediction_fast.py (0.04s)
+- ✅ **Generador de datos sintéticos** ultra-realista (4 años, 2.1M registros)
+- ✅ **Email automation** con 5 templates profesionales
+- ✅ **Configuración centralizada**: config.py con PathConfig, MLConfig, DatabaseConfig
+- ✅ **Documentation completa**: README.md + ARCHITECTURE.md (950 líneas)
+- ✅ **Windows Task Scheduler** XML para arranque automático
+- ✅ **Suite de tests completa**: 8 archivos, ~1200 líneas de validación
+- ✅ **Type-safety 100%**: 0 errores Pylance en todo el código
+- ✅ **Hardware IoT ESP32**: Completado por Electronics Partner
 
-**🎯 DomusAI v1.0 - 95% Completado**: Sistema de automatización energética completamente funcional, listo para integración con hardware IoT.
+**🎯 DomusAI v0.95 - Production Ready**: Sistema de automatización energética completamente funcional operando 24/7. Hardware ESP32 completado. Pendiente: Integración final Python↔ESP32 (Sprint 9).
+
+**📖 Ver Documentación Completa**: [ARCHITECTURE.md](ARCHITECTURE.md) - Sistema de producción detallado (950 líneas)
 
 </div>
