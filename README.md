@@ -2,13 +2,13 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
 ![Prophet](https://img.shields.io/badge/Prophet-1.1.5-green)
-![Status](https://img.shields.io/badge/Status-Production_Ready-brightgreen)
+![Status](https://img.shields.io/badge/Status-Production_Operational-brightgreen)
 ![License](https://img.shields.io/badge/License-Not_Specified-lightgrey)
-![Progress](https://img.shields.io/badge/Progress-95%25-brightgreen)
+![Progress](https://img.shields.io/badge/Progress-100%25-brightgreen)
 
 **DomusAI** es un sistema completo de análisis predictivo de consumo energético doméstico y comunitario que combina técnicas avanzadas de *machine learning*, detección automatizada de anomalías, generación de reportes profesionales, notificaciones por email automáticas y sistema de scheduler 24/7. Diseñado para optimizar el uso de energía mediante predicciones de series temporales con Prophet, clasificación inteligente de patrones anómalos y automatización completa de reportes periódicos.
 
-> 🎯 **Estado Actual**: ✅ **Sistema 95% Completo - Production Ready** | **Versión:** v0.95 | **Pendiente**: Integración ESP32 IoT (Sprint 8)
+> 🎯 **Estado Actual**: ✅ **Sistema 100% Completo - Operacional en Producción** | **Versión:** v1.0 | **Sistema End-to-End**: ESP32 → Railway MySQL → Python AI
 
 ---
 
@@ -83,13 +83,14 @@
 - ✅ **Multi-destinatario**: Envío simultáneo a múltiples emails
 - ✅ **Validado en producción**: Tests reales confirman entrega exitosa (3-4s típico)
 
-#### 🤖 **Sistema de Auto-Training y Scheduler** ✨ (NUEVO - Sprint 8)
+#### 🤖 **Sistema de Auto-Training y Scheduler** ✅ (Sprint 8)
 - ✅ **Scheduler 24/7**: APScheduler con 5 jobs automáticos configurados
 - ✅ **Job #1 - Detección Horaria**: Anomalías cada 60 minutos con Railway MySQL
 - ✅ **Job #2 - Re-entrenamiento**: Diario 3 AM, ejecución cada 7 días
   - Prophet + Isolation Forest re-training automático
   - Validación con últimos 30 días de datos
-  - Backup automático de modelos previos
+  - Backup automático de modelos previos con versionado
+  - Comparación inteligente: Solo actualiza producción si mejora métricas
   - Notificación por email con métricas (MAE, RMSE, R²)
 - ✅ **Job #3 - Reporte Diario**: 8 AM, HTML con últimas 24h
 - ✅ **Job #4 - Reporte Semanal**: Lunes 9 AM, análisis semanal completo
@@ -98,6 +99,14 @@
 - ✅ **Configuración YAML**: `config/scheduler_config.yaml` editable
 - ✅ **Windows Task Scheduler**: XML para arranque automático con sistema
 - ✅ **Logging centralizado**: Todos los jobs escriben a logs/scheduler.log
+- ✅ **Testing acelerado**: `test_scheduler_fast.py` valida jobs en 10 minutos
+
+#### 🔌 **Integración IoT ESP32 → Python** ✅ (Sprint 9)
+- ✅ **Hardware ESP32 completo**: Sensores ACS712 calibrados y operacionales
+- ✅ **Envío a Railway MySQL**: ESP32 inserta lecturas directamente cada 60s
+- ✅ **Lectura automática**: Scheduler Python consume datos de Railway en tiempo real
+- ✅ **Pipeline end-to-end**: ESP32 → Railway → Prophet → Alertas → Email
+- ✅ **Sistema operacional**: Funcionando 24/7 con datos reales de sensores
 - ✅ **Railway MySQL Integration**: Queries automáticas a base de datos en producción
 
 #### 🧪 **Testing y Validación** ✨
@@ -128,16 +137,6 @@
   - Comandos de producción y monitoreo
 - ✅ **copilot-instructions.md**: Guía para asistentes AI sobre el proyecto
 - ✅ **synthetic_data_generator/README.md**: Documentación del generador de datos
-
-### 🔄 **Pendiente** (5% Restante)
-
-#### 🔌 **Integración Final IoT con ESP32** (Sprint 9 - Integración)
-- ✅ Hardware ESP32 completado (Electronics Partner)
-- ✅ Sensores ACS712 instalados y calibrados
-- ✅ Código Arduino/C++ funcional
-- 📅 Integración final: ESP32 → MQTT → Railway MySQL → Scheduler Python
-- 📅 Testing end-to-end del flujo completo de datos en tiempo real
-- 📅 Validación de precisión de datos hardware vs sintéticos
 
 ---
 
@@ -378,11 +377,11 @@ DomusAI/
 | **🧪 Testing Suite** | 8 archivos | ✅ | ~1200 | 100% | 🔵 Alta |
 | **📁 Config System** | 1 archivo | ✅ | ~400 | 100% | ✅ Alta |
 | **🔌 IoT Hardware (ESP32)** | Hardware | ✅ | N/A | 100% | ✅ Alta |
-| **� IoT Integration** | Python↔ESP32 | 📅 | ~200 | 0% | �🔴 Alta |
+| **🔌 IoT Integration** | Python↔ESP32 | ✅ | ~200 | 100% | ✅ Alta |
 
-**📊 Progreso Total: 95/100%** hacia DomusAI v1.0
+**📊 Progreso Total: 100/100%** - DomusAI v1.0 Completo
 
-**Sprint 9 (Próximo)**: Integración Final IoT (Python ↔ ESP32 ↔ Railway MySQL)
+**Sprint 9 (Completado)**: Integración Final IoT (ESP32 → Railway MySQL → Python AI)
 
 ---
 
@@ -612,7 +611,7 @@ Fases:
 ✅ Testing & Validation [████████████████████] 100%
 ✅ Documentation        [████████████████████] 100%
 ✅ IoT Hardware (ESP32) [████████████████████] 100% ← Electronics Partner Completado
-📅 IoT Integration      [░░░░░░░░░░░░░░░░░░░░]   0% ← Sprint 9 (Integración Final)
+✅ IoT Integration      [████████████████████] 100% ← Sprint 9 Completado 🎉
 ```
 
 ### **✅ Hitos Completados**
@@ -785,10 +784,10 @@ Fases:
 
 ### **🔄 Sprint Actual**
 
-#### � **Sprint 9: Integración Final IoT** (1-2 semanas) - **PRÓXIMO**
+#### ✅ **Sprint 9: Integración Final IoT** - **COMPLETADO** 🎉
 
 **Prioridad**: ALTA  
-**Objetivo**: Conectar hardware ESP32 (completado) con sistema Python automático
+**Objetivo**: Conectar hardware ESP32 con sistema Python automático → ✅ **CUMPLIDO**
 
 **Estado Hardware ESP32** ✅:
 - ✅ ESP32 con sensores ACS712 configurado y funcional
@@ -796,39 +795,23 @@ Fases:
 - ✅ Lectura de potencia, voltaje, corriente operacional
 - ✅ Tests de precisión hardware validados
 
-**Tareas de Integración Pendientes**:
-- [ ] **Configurar broker MQTT**
-  - Raspberry Pi o cloud MQTT broker (Mosquitto)
-  - Bridge ESP32 → MQTT → Python listener
-  
-- [ ] **Listener Python para MQTT**
-  ```python
-  import paho.mqtt.client as mqtt
-  from src.database import insert_energy_reading
-  
-  def on_message(client, userdata, msg):
-      # Parsear JSON de ESP32
-      data = json.loads(msg.payload)
-      # Insertar en Railway MySQL
-      insert_energy_reading(data)
-      # Trigger detección de anomalías si crítico
-      if data['power'] > threshold:
-          trigger_anomaly_alert(data)
+**Integración Completada** ✅:
+- ✅ **ESP32 → Railway MySQL**: Envío directo cada 60s
+- ✅ **Scheduler Python Operacional**: Lee datos de Railway en tiempo real
+- ✅ **Pipeline End-to-End Funcional**:
   ```
+  ESP32 (Sensores ACS712)
+      ↓ [60s intervals]
+  Railway MySQL (INSERT)
+      ↓ [Scheduler queries]
+  Python AI (Prophet + Anomalies)
+      ↓ [Auto-detection]
+  Email Alerts (SMTP)
+  ```
+- ✅ **Sistema 24/7**: Operacional con datos reales de sensores
+- ✅ **Validación Completa**: Flujo probado exitosamente
 
-- [ ] **Pipeline Automático Completo**
-  - ESP32 → MQTT (cada 60s)
-  - Python → Railway MySQL (insert)
-  - Scheduler → Query MySQL → Análisis
-  - Anomalías → Email automático
-
-- [ ] **Testing End-to-End**
-  - Validar flujo completo 24h continuas
-  - Comparar datos ESP32 vs sintéticos (precisión)
-  - Validar latencia < 5s (sensor → DB → análisis)
-  - Pruebas de reconexión WiFi/MQTT
-
-**Tiempo Estimado**: 1-2 semanas (Integración colaborativa)
+**Resultado**: Sistema completo operando en producción 🚀
 
 ---
 
@@ -1499,13 +1482,14 @@ temp_model = Prophet(
 
 | Rol | Responsabilidades | Stack | Estado |
 |-----|-------------------|-------|---------|
-| **Developer Python/AI** | - Análisis de datos<br>- Machine Learning<br>- Backend API<br>- Pipeline de predicción<br>- Scheduler 24/7 | Python, Prophet, scikit-learn, pandas, APScheduler | ✅ 95% Completo |
-| **Electronics Partner** | - Hardware ESP32<br>- Sensores ACS712<br>- Código Arduino/C++<br>- Protocolo MQTT | C/C++, MQTT, ESP32, Sensores | ✅ 100% Completo |
+| **Developer Python/AI** | - Análisis de datos<br>- Machine Learning<br>- Backend API<br>- Pipeline de predicción<br>- Scheduler 24/7 | Python, Prophet, scikit-learn, pandas, APScheduler | ✅ 100% Completo |
+| **Electronics Partner** | - Hardware ESP32<br>- Sensores ACS712<br>- Código Arduino/C++<br>- Protocolo MQTT<br>- Integración Railway | C/C++, MQTT, ESP32, Sensores | ✅ 100% Completo |
 
 **Estado Colaboración**: 
 - ✅ Python backend completado
 - ✅ Hardware ESP32 completado
-- 📅 Integración final pendiente (Sprint 9)
+- ✅ Integración ESP32 ↔ Railway MySQL completada
+- ✅ Sistema end-to-end operacional 24/7
 
 ### **¿Cómo Contribuir?**
 
@@ -1603,8 +1587,6 @@ SOFTWARE.
 
 - 📂 **Repositorio**: [github.com/ddani22/DomusAI](https://github.com/ddani22/DomusAI)
 - 🐛 **Issues**: [github.com/ddani22/DomusAI/issues](https://github.com/ddani22/DomusAI/issues)
-- 📖 **Wiki**: [github.com/ddani22/DomusAI/wiki](https://github.com/ddani22/DomusAI/wiki) *(próximamente)*
-- 📊 **Project Board**: [github.com/ddani22/DomusAI/projects](https://github.com/ddani22/DomusAI/projects) *(próximamente)*
 
 ### **Documentación Externa**
 
@@ -1612,14 +1594,6 @@ SOFTWARE.
 - [Statsmodels ARIMA](https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima.model.ARIMA.html) - Documentación de modelos estadísticos
 - [Scikit-learn Time Series](https://scikit-learn.org/stable/modules/classes.html#module-sklearn.preprocessing) - Preprocessing para ML
 - [Pandas Time Series](https://pandas.pydata.org/docs/user_guide/timeseries.html) - Manejo de series temporales
-
-### **Comunidad**
-
-- 💬 **Discussions**: Usa GitHub Discussions para preguntas generales
-- 🐦 **Updates**: Síguenos en Twitter (próximamente)
-- 📧 **Email**: contacto@domusai.dev *(próximamente)*
-
----
 
 ## 🎯 Próximos Pasos Recomendados
 
@@ -1644,17 +1618,6 @@ SOFTWARE.
 4. ✅ Entrenar modelos con datos propios
 5. ✅ Publicar resultados citando DomusAI
 
----
-
-## 🌟 Agradecimientos
-
-- **Meta AI Research** - Por Prophet, el mejor modelo para series temporales
-- **Statsmodels Team** - Por modelos estadísticos robustos
-- **Pandas Development Team** - Por la mejor librería de análisis de datos
-- **Jinja Development Team** - Por el mejor motor de templates Python
-- **Comunidad Open Source** - Por inspiración y soporte
-
----
 
 <div align="center">
 
@@ -1664,10 +1627,6 @@ SOFTWARE.
 **[⬆ Volver arriba](#-domusai---sistema-de-monitoreo-y-predicción-de-consumo-energético)**
 
 ---
-
-*Última actualización: Noviembre 2, 2025*  
-*Versión: 0.95 (95% hacia v1.0)*  
-*Proyecto: DomusAI - Sistema de Monitoreo Energético Inteligente*
 
 **🆕 Nuevo en v0.95 - Sistema de Producción Completo**:
 - ✅ **Scheduler 24/7** con 5 jobs automáticos (APScheduler)
@@ -1684,7 +1643,7 @@ SOFTWARE.
 - ✅ **Type-safety 100%**: 0 errores Pylance en todo el código
 - ✅ **Hardware IoT ESP32**: Completado por Electronics Partner
 
-**🎯 DomusAI v0.95 - Production Ready**: Sistema de automatización energética completamente funcional operando 24/7. Hardware ESP32 completado. Pendiente: Integración final Python↔ESP32 (Sprint 9).
+**🎯 DomusAI v1.0 - Producción Operacional**: Sistema completo de automatización energética funcionando 24/7 end-to-end. Hardware ESP32 integrado con Python AI. Pipeline: Sensores → Railway MySQL → Prophet → Alertas → Email.
 
 **📖 Ver Documentación Completa**: [ARCHITECTURE.md](ARCHITECTURE.md) - Sistema de producción detallado (950 líneas)
 
