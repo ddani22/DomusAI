@@ -3,10 +3,6 @@
 
 Este módulo centraliza todos los paths, constantes y configuraciones
 del proyecto para facilitar mantenimiento y evitar hardcoding.
-
-Autor: DomusAI Team
-Fecha: Octubre 2025
-Versión: 1.0
 """
 
 from pathlib import Path

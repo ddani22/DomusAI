@@ -1,0 +1,93 @@
+# ⚡ Configuración del Scheduler - MODO TEST (intervalos acelerados)
+# 
+# Esta configuración es para TESTING ÚNICAMENTE.
+# Usa intervalos cortos para validar funcionamiento sin esperar horas/días.
+#
+# PRODUCCIÓN: usar config/scheduler_config.yaml
+
+general:
+  timezone: Europe/Madrid
+  log_level: INFO
+  log_file: logs/scheduler_test.log  # Log separado para no contaminar producción
+
+jobs:
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # JOB #1: Detección de Anomalías
+  # PRODUCCIÓN: Cada 60 minutos
+  # TEST: Cada 2 minutos ⚡
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  anomaly_detection:
+    enabled: true
+    interval_minutes: 2  # ⚡ Acelerado (prod: 60)
+    description: "Detecta anomalías en datos de última hora"
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # JOB #2: Re-entrenamiento de Modelos
+  # PRODUCCIÓN: Diario 3 AM, solo si pasaron ≥7 días
+  # TEST: Cada 5 minutos, solo si pasaron ≥1 minuto ⚡
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  model_retraining:
+    enabled: true
+    interval_minutes: 5  # ⚡ Acelerado (prod: cron "0 3 * * *")
+    min_days_between: 0  # ⚡ Sin espera (prod: 7 días)
+    min_minutes_between: 1  # ⚡ Nuevo: 1 minuto entre entrenamientos (solo test)
+    description: "Re-entrena modelos con datos recientes"
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # JOB #3: Reporte Diario
+  # PRODUCCIÓN: Cron "0 8 * * *" (8:00 AM diario)
+  # TEST: Cada 3 minutos ⚡
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  daily_report:
+    enabled: true
+    interval_minutes: 3  # ⚡ Acelerado (prod: cron)
+    description: "Reporte HTML de últimas 24 horas"
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # JOB #4: Reporte Semanal
+  # PRODUCCIÓN: Cron "0 9 * * 1" (Lunes 9:00 AM)
+  # TEST: Cada 4 minutos ⚡
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  weekly_report:
+    enabled: true
+    interval_minutes: 4  # ⚡ Acelerado (prod: cron)
+    description: "Reporte HTML de últimos 7 días"
+
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  # JOB #5: Reporte Mensual
+  # PRODUCCIÓN: Cron "0 10 1 * *" (Día 1 del mes, 10:00 AM)
+  # TEST: Cada 6 minutos ⚡
+  # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  monthly_report:
+    enabled: true
+    interval_minutes: 6  # ⚡ Acelerado (prod: cron)
+    description: "Reporte HTML + PDF del mes anterior"
+
+notifications:
+  enabled: true
+  email_on_error: true
+  email_on_success: true  # ⚡ Activado para test (prod: false)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# TIMELINE DE TEST (15 minutos para ver todos los jobs)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#
+# T+0:00  → Inicio scheduler
+# T+0:02  → Job #1: Anomaly Detection (1ra ejecución)
+# T+0:03  → Job #3: Daily Report (1ra ejecución)
+# T+0:04  → Job #1: Anomaly Detection (2da ejecución)
+#         → Job #4: Weekly Report (1ra ejecución)
+# T+0:05  → Job #2: Re-training (1ra ejecución) ⚠️ LENTO (10s simulado)
+# T+0:06  → Job #1: Anomaly Detection (3ra ejecución)
+#         → Job #3: Daily Report (2da ejecución)
+#         → Job #5: Monthly Report (1ra ejecución)
+# T+0:08  → Job #1: Anomaly Detection (4ta ejecución)
+#         → Job #4: Weekly Report (2da ejecución)
+# T+0:09  → Job #3: Daily Report (3ra ejecución)
+# T+0:10  → Job #1: Anomaly Detection (5ta ejecución)
+# T+0:12  → Job #1: Anomaly Detection (6ta ejecución)
+#         → Job #3: Daily Report (4ta ejecución)
+#         → Job #4: Weekly Report (3ra ejecución)
+#         → Job #5: Monthly Report (2da ejecución)
+#
+# ⏱️ TOTAL: En 12 minutos habrás visto TODOS los jobs ejecutándose

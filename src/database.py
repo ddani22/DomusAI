@@ -8,22 +8,6 @@ PROPÓSITO:
   - Retornar DataFrames en formato DomusAI (compatibles con ML pipeline)
   - Connection pooling para rendimiento óptimo
   - Health checks y manejo de errores robusto
-
-FUNCIONES PRINCIPALES:
-  - get_recent_readings(hours=24) → DataFrame con últimas N horas
-  - get_all_data() → DataFrame completo (para entrenamiento ML)
-  - get_latest_reading() → Dict con última lectura
-  - get_data_by_date_range(start, end) → DataFrame por rango de fechas
-  - test_connection() → bool para health check
-  - get_statistics() → Dict con estadísticas básicas
-
-ARQUITECTURA SPRINT 8:
-  - Este módulo es READ-ONLY (solo SELECT)
-  - Tu compañero hace INSERT directo desde ESP32
-  - Tú usas estas funciones para entrenar modelos ML y detectar anomalías
-  
-VERSIÓN: 1.0
-FECHA: 2025-10-19
 """
 
 import sys

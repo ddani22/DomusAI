@@ -3,10 +3,6 @@
 
 Define excepciones específicas del dominio para mejor manejo de errores
 y mensajes más claros para el usuario.
-
-Autor: DomusAI Team
-Fecha: Octubre 2025
-Versión: 1.0
 """
 
 

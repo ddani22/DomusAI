@@ -10,10 +10,6 @@ Características:
 - Gráficos embebidos automáticos
 - Templates personalizables con Jinja2
 - Exportación a HTML y PDF
-
-Autor: DomusAI Team
-Fecha: Octubre 2025
-Versión: 1.0
 """
 
 import pandas as pd

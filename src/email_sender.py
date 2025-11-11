@@ -8,9 +8,6 @@ Soporta:
 - Gmail (SMTP: smtp.gmail.com:587)
 - Outlook (SMTP: smtp-mail.outlook.com:587)
 - SMTP personalizado
-
-Autor: DomusAI Team
-Fecha: Octubre 2025
 """
 
 import smtplib

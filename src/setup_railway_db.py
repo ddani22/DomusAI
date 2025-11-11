@@ -12,13 +12,6 @@ USO:
   1. Asegurarse que .env tiene las credenciales de Railway correctas
   2. Ejecutar: python src/setup_railway_db.py
   3. Verificar en Railway console que la tabla existe
-
-ARQUITECTURA SPRINT 8:
-  - Compañero → ESP32 → INSERT directo a Railway MySQL
-  - Tú → SELECT de Railway → Auto-train ML → Anomalies → Reports
-  
-VERSIÓN: 2.0 (Simplificada - Solo energy_readings)
-FECHA: 2025-01-XX
 """
 
 import sys

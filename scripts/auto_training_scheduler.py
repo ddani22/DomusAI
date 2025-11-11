@@ -19,10 +19,6 @@ Uso:
 
 Para detener:
     Ctrl+C (KeyboardInterrupt)
-
-Autor: DomusAI Team
-Fecha: Octubre 2025
-Versión: 1.0
 """
 
 import sys

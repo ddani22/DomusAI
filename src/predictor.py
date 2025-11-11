@@ -7,11 +7,6 @@ Implementa modelos estadísticos robustos para predicción de consumo energétic
 - ARIMA: Validación estadística clásica
 - Enhanced Prophet: Prophet mejorado como sustituto LSTM
 - Ensemble: Combinación inteligente de 3 modelos
-
-Optimizado para Python 3.13 y máxima compatibilidad DomusAI
-Autor: DomusAI Team
-Fecha: 2025-01-XX
-Versión: 2.2 - Sin TensorFlow, compatible Python 3.13
 """
 
 import pandas as pd

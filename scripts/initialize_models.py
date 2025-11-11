@@ -5,7 +5,7 @@ Este script crea los modelos iniciales usando datos sintéticos o CSV histórico
 Debe ejecutarse UNA VEZ antes de activar el scheduler automático.
 
 Uso:
-    # Opción 1: Usar CSV sintético pre-generado (RECOMENDADO)
+    # Opción 1: Usar CSV sintético pre-generado
     python scripts/initialize_models.py --data-source synthetic-csv
     
     # Opción 2: CSV sintético con días específicos
@@ -22,10 +22,6 @@ Uso:
     
     # Opción 6: Railway MySQL (producción)
     python scripts/initialize_models.py --data-source railway
-
-Autor: DomusAI Team
-Fecha: Noviembre 2025
-Versión: 1.1
 """
 
 import argparse

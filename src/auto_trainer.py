@@ -11,10 +11,6 @@ Características:
 - Comparación con versión anterior
 - Rollback si nuevo modelo degrada
 - Logging exhaustivo y notificaciones
-
-Autor: DomusAI Team
-Fecha: Octubre 2025
-Versión: 1.0
 """
 
 import pandas as pd

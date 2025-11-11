@@ -7,9 +7,6 @@ y permite enviar emails de prueba.
 Uso:
     python scripts/validate_email_config.py
     python scripts/validate_email_config.py --test-email tu_email@gmail.com
-
-Autor: DomusAI Team
-Fecha: Octubre 2025
 """
 
 import sys

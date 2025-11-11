@@ -3,10 +3,6 @@
 
 Funciones reutilizables para validar datos, paths, configuraciones
 y otros inputs del usuario o externos.
-
-Autor: DomusAI Team
-Fecha: Octubre 2025
-Versión: 1.0
 """
 
 from pathlib import Path

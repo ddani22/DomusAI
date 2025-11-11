@@ -3,10 +3,6 @@ DomusAI - Sistema de Detección de Anomalías en Consumo Energético
 
 Este módulo implementa múltiples métodos de detección de anomalías basados en
 los experimentos validados en notebooks/03_anomalias.ipynb.
-
-Autor: DomusAI Team
-Fecha: Octubre 2025
-Versión: 1.0
 """
 
 import pandas as pd
